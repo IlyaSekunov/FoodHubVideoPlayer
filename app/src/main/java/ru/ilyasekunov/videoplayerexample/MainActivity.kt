@@ -15,12 +15,17 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.IntRange
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -92,7 +98,7 @@ import java.util.Locale
 
 const val PLAYER_SEEK_BACK_INCREMENT = 10 * 1000L // 10 seconds
 const val PLAYER_SEEK_FORWARD_INCREMENT = 10 * 1000L // 10 seconds
-const val PLAYER_CONTROLS_VISIBILITY_TIME = 1000 * 1000L // 5 seconds
+const val PLAYER_CONTROLS_VISIBILITY_TIME = 5 * 1000L // 5 seconds
 
 data class Video(
     val url: String,
@@ -198,6 +204,40 @@ fun Video.toMediaItem(): MediaItem =
                 .build()
         )
         .build()
+
+fun videoPlayerStateListener(videoControlsState: VideoControlsState): Player.Listener =
+    object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            super.onEvents(player, events)
+            with(videoControlsState) {
+                isPlaying = player.isPlaying
+                isLoading = player.isLoading
+                playbackState = player.playbackState
+                isEnded = playbackState == Player.STATE_ENDED
+                hasPreviousMediaItem = player.hasPreviousMediaItem()
+                hasNextMediaItem = player.hasNextMediaItem()
+                isPaused = !isPlaying && !isLoading && !isEnded
+                totalDurationMs = player.contentDuration.coerceAtLeast(0)
+                currentTimeMs = player.contentPosition.coerceAtLeast(0)
+                bufferedPercentage = player.bufferedPercentage
+                title = player.currentMediaItem?.mediaMetadata?.displayTitle.toString()
+                currentMediaItemIndex = player.currentMediaItemIndex
+            }
+        }
+    }
+
+fun videoPlayerStateRestorer(
+    videoPlayer: Player,
+    videoControlsState: VideoControlsState
+): DefaultLifecycleObserver = object : DefaultLifecycleObserver {
+    override fun onResume(owner: LifecycleOwner) {
+        super.onStart(owner)
+        videoPlayer.seekTo(
+            videoControlsState.currentMediaItemIndex,
+            videoControlsState.currentTimeMs
+        )
+    }
+}
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -313,24 +353,23 @@ fun VideoPlayerView(
         val videoControlsState = rememberVideoControlsState(player)
 
         DisposableEffect(Unit) {
-            val observer = object : DefaultLifecycleObserver {
-                override fun onResume(owner: LifecycleOwner) {
-                    super.onStart(owner)
-                    player.seekTo(
-                        videoControlsState.currentMediaItemIndex,
-                        videoControlsState.currentTimeMs
-                    )
-                }
-            }
-            lifecycle.addObserver(observer)
+            val videoPlayerStateRestorer = videoPlayerStateRestorer(
+                videoPlayer = player,
+                videoControlsState = videoControlsState
+            )
+            lifecycle.addObserver(videoPlayerStateRestorer)
 
             onDispose {
-                lifecycle.removeObserver(observer)
+                lifecycle.removeObserver(videoPlayerStateRestorer)
             }
         }
 
-        LaunchedEffect(videoControlsState.visible) {
-            if (videoControlsState.visible) {
+        var isUserInteractingWithPlayer by rememberSaveable { mutableStateOf(false) }
+
+        LaunchedEffect(isUserInteractingWithPlayer) {
+            if (isUserInteractingWithPlayer) {
+                videoControlsState.visible = true
+            } else {
                 delay(PLAYER_CONTROLS_VISIBILITY_TIME)
                 videoControlsState.visible = false
             }
@@ -347,26 +386,7 @@ fun VideoPlayerView(
         }
 
         DisposableEffect(Unit) {
-            val playerListener = object : Player.Listener {
-                override fun onEvents(player: Player, events: Player.Events) {
-                    super.onEvents(player, events)
-                    with(videoControlsState) {
-                        isPlaying = player.isPlaying
-                        isLoading = player.isLoading
-                        playbackState = player.playbackState
-                        isEnded = playbackState == Player.STATE_ENDED
-                        hasPreviousMediaItem = player.hasPreviousMediaItem()
-                        hasNextMediaItem = player.hasNextMediaItem()
-                        isPaused = !isPlaying && !isLoading && !isEnded
-                        totalDurationMs = player.contentDuration.coerceAtLeast(0)
-                        currentTimeMs = player.contentPosition.coerceAtLeast(0)
-                        bufferedPercentage = player.bufferedPercentage
-                        title = player.currentMediaItem?.mediaMetadata?.displayTitle.toString()
-                        currentMediaItemIndex = player.currentMediaItemIndex
-                    }
-                }
-            }
-
+            val playerListener = videoPlayerStateListener(videoControlsState)
             player.addListener(playerListener)
 
             onDispose {
@@ -376,21 +396,19 @@ fun VideoPlayerView(
 
         VideoPlayer(
             player = player,
-            onClick = { videoControlsState.visible = !videoControlsState.visible },
+            onStartInteraction = {
+                isUserInteractingWithPlayer = true
+            },
+            onFinishInteraction = {
+                isUserInteractingWithPlayer = false
+            },
             modifier = Modifier.fillMaxSize()
         )
 
-        AnimatedVisibility(
+        BlackoutBackground(
             visible = videoControlsState.visible,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color = Color.Black.copy(alpha = 0.5f))
-            )
-        }
+            modifier = Modifier.fillMaxSize()
+        )
 
         VideoPlayerControls(
             videoControlsState = videoControlsState,
@@ -399,8 +417,12 @@ fun VideoPlayerView(
             onPreviousClick = player::seekToPrevious,
             onNextClick = player::seekToNext,
             onReplayClick = player::seekBack,
-            onCurrentTimeMsChange = {
+            onStartedTimeChanging = {
+                isUserInteractingWithPlayer = true
+            },
+            onFinishTimeChanging = {
                 player.seekTo(it.toLong())
+                isUserInteractingWithPlayer = false
             },
             isFullScreen = isFullScreen,
             onFullScreenClick = onFullScreenClick,
@@ -416,24 +438,53 @@ fun VideoPlayerView(
     }
 }
 
+@Composable
+fun BlackoutBackground(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    enterTransition: EnterTransition = fadeIn(),
+    exitTransition: ExitTransition = fadeOut(),
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = enterTransition,
+        exit = exitTransition,
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = Color.Black.copy(alpha = 0.5f))
+        )
+    }
+}
+
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayer(
     player: Player,
-    onClick: () -> Unit,
+    onStartInteraction: () -> Unit,
+    onFinishInteraction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     AndroidView(
         factory = {
-            PlayerView(context).apply {
+            PlayerView(it).apply {
                 this.player = player
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
                 useController = false
                 clipToOutline = true
             }
         },
-        modifier = modifier.noRippleClickable(onClick = onClick)
+        modifier = modifier
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    onStartInteraction()
+                    waitForUpOrCancellation()
+                    onFinishInteraction()
+                }
+            }
     )
 }
 
@@ -445,7 +496,8 @@ fun VideoPlayerControls(
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
     onReplayClick: () -> Unit,
-    onCurrentTimeMsChange: (Float) -> Unit,
+    onStartedTimeChanging: () -> Unit,
+    onFinishTimeChanging: (Float) -> Unit,
     isFullScreen: Boolean,
     onFullScreenClick: () -> Unit,
     navigateBack: () -> Unit,
@@ -490,10 +542,11 @@ fun VideoPlayerControls(
             bufferedPercentage = { videoControlsState.bufferedPercentage },
             onStartedTimeChanging = {
                 isUserEditingCurrentTime = true
+                onStartedTimeChanging()
             },
             onFinishTimeChanging = {
-                onCurrentTimeMsChange(it)
                 isUserEditingCurrentTime = false
+                onFinishTimeChanging(it)
             },
             onFullScreenClick = onFullScreenClick,
             modifier = Modifier
@@ -589,7 +642,9 @@ fun VideoPlayerControlsMiddle(
                     modifier = Modifier.size(52.dp)
                 )
             } else if (isLoading) {
-                CircularProgressIndicator()
+                PlayerLoadingIndicator(
+                    modifier = Modifier.size(52.dp)
+                )
             }
 
             if (hasPreviousMediaItem || hasNextMediaItem) {
@@ -832,6 +887,28 @@ fun BufferedPercentageSlider(
         },
         modifier = modifier
     )
+}
+
+@Composable
+fun PlayerLoadingIndicator(
+    modifier: Modifier = Modifier,
+    indicatorColor: Color = Color.White,
+) {
+    IconButton(
+        onClick = {},
+        enabled = false,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            disabledContainerColor = Color.Black.copy(alpha = 0.5f),
+            disabledContentColor = Color.White
+        ),
+        modifier = modifier
+    ) {
+        CircularProgressIndicator(
+            color = indicatorColor,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(24.dp)
+        )
+    }
 }
 
 @Composable
