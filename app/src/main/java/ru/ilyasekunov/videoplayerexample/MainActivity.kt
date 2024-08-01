@@ -1,5 +1,6 @@
 package ru.ilyasekunov.videoplayerexample
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -11,6 +12,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.DrawableRes
+import androidx.annotation.IntRange
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -24,19 +26,27 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +70,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -78,7 +92,7 @@ import java.util.Locale
 
 const val PLAYER_SEEK_BACK_INCREMENT = 10 * 1000L // 10 seconds
 const val PLAYER_SEEK_FORWARD_INCREMENT = 10 * 1000L // 10 seconds
-const val PLAYER_CONTROLS_VISIBILITY_TIME = 5 * 1000L // 5 seconds
+const val PLAYER_CONTROLS_VISIBILITY_TIME = 1000 * 1000L // 5 seconds
 
 data class Video(
     val url: String,
@@ -99,6 +113,7 @@ class VideoControlsState(
     bufferedPercentage: Int = 0,
     hasPreviousMediaItem: Boolean = false,
     hasNextMediaItem: Boolean = false,
+    currentMediaItemIndex: Int = 0,
 ) {
     var visible by mutableStateOf(visible)
     var isPlaying by mutableStateOf(isPlaying)
@@ -112,6 +127,7 @@ class VideoControlsState(
     var bufferedPercentage by mutableIntStateOf(bufferedPercentage)
     var hasPreviousMediaItem by mutableStateOf(hasPreviousMediaItem)
     var hasNextMediaItem by mutableStateOf(hasNextMediaItem)
+    var currentMediaItemIndex by mutableIntStateOf(currentMediaItemIndex)
 
     companion object {
         val Saver = mapSaver(
@@ -128,7 +144,8 @@ class VideoControlsState(
                     "totalDurationMs" to it.totalDurationMs,
                     "bufferedPercentage" to it.bufferedPercentage,
                     "hasPreviousMediaItem" to it.hasPreviousMediaItem,
-                    "hasNextMediaItem" to it.hasNextMediaItem
+                    "hasNextMediaItem" to it.hasNextMediaItem,
+                    "currentMediaItemIndex" to it.currentMediaItemIndex
                 )
             },
             restore = {
@@ -144,7 +161,8 @@ class VideoControlsState(
                     totalDurationMs = (it["totalDurationMs"] as Long),
                     bufferedPercentage = (it["bufferedPercentage"] as Int),
                     hasPreviousMediaItem = (it["hasPreviousMediaItem"] as Boolean),
-                    hasNextMediaItem = (it["hasNextMediaItem"] as Boolean)
+                    hasNextMediaItem = (it["hasNextMediaItem"] as Boolean),
+                    currentMediaItemIndex = (it["currentMediaItemIndex"] as Int)
                 )
             }
         )
@@ -201,7 +219,9 @@ class MainActivity : ComponentActivity() {
                         )
                     ),
                     initiallyStartPlaying = true,
-                    autoRepeat = false
+                    autoRepeat = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
                 )
             }
         }
@@ -268,6 +288,8 @@ fun FoodHubVideoPlayer(
             }
         },
         modifier = modifier
+            .displayCutoutPadding()
+            .navigationBarsPadding()
     )
 }
 
@@ -279,6 +301,7 @@ fun VideoPlayerView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     BackHandler {
         if (isFullScreen) {
@@ -288,6 +311,23 @@ fun VideoPlayerView(
 
     Box(modifier = modifier) {
         val videoControlsState = rememberVideoControlsState(player)
+
+        DisposableEffect(Unit) {
+            val observer = object : DefaultLifecycleObserver {
+                override fun onResume(owner: LifecycleOwner) {
+                    super.onStart(owner)
+                    player.seekTo(
+                        videoControlsState.currentMediaItemIndex,
+                        videoControlsState.currentTimeMs
+                    )
+                }
+            }
+            lifecycle.addObserver(observer)
+
+            onDispose {
+                lifecycle.removeObserver(observer)
+            }
+        }
 
         LaunchedEffect(videoControlsState.visible) {
             if (videoControlsState.visible) {
@@ -321,12 +361,9 @@ fun VideoPlayerView(
                         totalDurationMs = player.contentDuration.coerceAtLeast(0)
                         currentTimeMs = player.contentPosition.coerceAtLeast(0)
                         bufferedPercentage = player.bufferedPercentage
+                        title = player.currentMediaItem?.mediaMetadata?.displayTitle.toString()
+                        currentMediaItemIndex = player.currentMediaItemIndex
                     }
-                }
-
-                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    super.onMediaItemTransition(mediaItem, reason)
-                    videoControlsState.title = mediaItem?.mediaMetadata?.displayTitle.toString()
                 }
             }
 
@@ -342,6 +379,18 @@ fun VideoPlayerView(
             onClick = { videoControlsState.visible = !videoControlsState.visible },
             modifier = Modifier.fillMaxSize()
         )
+
+        AnimatedVisibility(
+            visible = videoControlsState.visible,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = Color.Black.copy(alpha = 0.5f))
+            )
+        }
 
         VideoPlayerControls(
             videoControlsState = videoControlsState,
@@ -402,18 +451,17 @@ fun VideoPlayerControls(
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
-        modifier = modifier
-    ) {
+    Box(modifier = modifier) {
         var isUserEditingCurrentTime by rememberSaveable { mutableStateOf(false) }
 
         VideoPlayerControlsHeader(
             visible = videoControlsState.visible,
             title = videoControlsState.title,
             isFullScreen = isFullScreen,
-            navigateBack = navigateBack
+            navigateBack = navigateBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
         )
 
         if (!isUserEditingCurrentTime) {
@@ -429,26 +477,28 @@ fun VideoPlayerControls(
                 onNextClick = onNextClick,
                 onPlayClick = onPlayClick,
                 onPauseClick = onPauseClick,
-                onReplayClick = onReplayClick
+                onReplayClick = onReplayClick,
+                modifier = Modifier.align(Alignment.Center)
             )
         }
 
         VideoPlayerControlsFooter(
             visible = videoControlsState.visible,
             isUserEditingCurrentTime = isUserEditingCurrentTime,
-            currentTimeMs = videoControlsState.currentTimeMs,
-            totalDurationMs = videoControlsState.totalDurationMs,
-            bufferedPercentage = videoControlsState.bufferedPercentage,
+            currentTimeMs = { videoControlsState.currentTimeMs },
+            totalDurationMs = { videoControlsState.totalDurationMs },
+            bufferedPercentage = { videoControlsState.bufferedPercentage },
             onStartedTimeChanging = {
-                onPauseClick()
                 isUserEditingCurrentTime = true
             },
             onFinishTimeChanging = {
                 onCurrentTimeMsChange(it)
-                onPlayClick()
                 isUserEditingCurrentTime = false
             },
-            onFullScreenClick = onFullScreenClick
+            onFullScreenClick = onFullScreenClick,
+            modifier = Modifier
+                .padding(bottom = 20.dp)
+                .align(Alignment.BottomCenter)
         )
     }
 }
@@ -467,19 +517,14 @@ fun VideoPlayerControlsHeader(
         visible = visible,
         modifier = modifier
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             if (isFullScreen) {
                 NavigateBackArrow(onClick = navigateBack)
             }
             Text(
                 text = title,
                 color = Color.White,
-                modifier = Modifier
-                    .weight(1f)
-                    .wrapContentWidth()
+                modifier = Modifier.align(Alignment.Center)
             )
         }
     }
@@ -504,11 +549,12 @@ fun VideoPlayerControlsMiddle(
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(),
-        exit = fadeOut()
+        exit = fadeOut(),
+        modifier = modifier
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(30.dp),
-            modifier = modifier
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (hasPreviousMediaItem || hasNextMediaItem) {
                 ControlButton(
@@ -522,19 +568,25 @@ fun VideoPlayerControlsMiddle(
                 ControlButton(
                     enabled = true,
                     onClick = onPauseClick,
-                    drawableId = R.drawable.baseline_pause_24
+                    drawableId = R.drawable.baseline_pause_24,
+                    iconSize = 28.dp,
+                    modifier = Modifier.size(52.dp)
                 )
             } else if (isPaused) {
                 ControlButton(
                     enabled = true,
                     onClick = onPlayClick,
-                    drawableId = R.drawable.baseline_play_arrow_24
+                    drawableId = R.drawable.baseline_play_arrow_24,
+                    iconSize = 28.dp,
+                    modifier = Modifier.size(52.dp)
                 )
             } else if (isEnded) {
                 ControlButton(
                     enabled = true,
                     onClick = onReplayClick,
-                    drawableId = R.drawable.baseline_replay_24
+                    drawableId = R.drawable.baseline_replay_24,
+                    iconSize = 28.dp,
+                    modifier = Modifier.size(52.dp)
                 )
             } else if (isLoading) {
                 CircularProgressIndicator()
@@ -555,9 +607,9 @@ fun VideoPlayerControlsMiddle(
 fun VideoPlayerControlsFooter(
     visible: Boolean,
     isUserEditingCurrentTime: Boolean,
-    currentTimeMs: Long,
-    totalDurationMs: Long,
-    bufferedPercentage: Int,
+    currentTimeMs: () -> Long,
+    totalDurationMs: () -> Long,
+    bufferedPercentage: () -> Int,
     onStartedTimeChanging: () -> Unit,
     onFinishTimeChanging: (Float) -> Unit,
     onFullScreenClick: () -> Unit,
@@ -575,7 +627,7 @@ fun VideoPlayerControlsFooter(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             var currentTimeSliderPosition by remember {
-                mutableLongStateOf(currentTimeMs)
+                mutableLongStateOf(currentTimeMs())
             }
 
             if (isUserEditingCurrentTime) {
@@ -595,9 +647,9 @@ fun VideoPlayerControlsFooter(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "${currentTimeMs.formatMillis()}/${totalDurationMs.formatMillis()}",
-                        color = Color.White
+                    CurrentTimeAndTotalDuration(
+                        currentTimeMs = currentTimeMs,
+                        totalDurationMs = totalDurationMs
                     )
                     FullScreenButton(
                         onClick = onFullScreenClick,
@@ -607,7 +659,14 @@ fun VideoPlayerControlsFooter(
             }
 
             TimeAndBufferingView(
-                currentTimeMs = currentTimeSliderPosition,
+                currentTimeMs = {
+                    if (isUserEditingCurrentTime) {
+                        currentTimeSliderPosition
+                    } else {
+                        currentTimeMs()
+                    }
+                },
+                isUserEditingCurrentTime = isUserEditingCurrentTime,
                 totalDurationMs = totalDurationMs,
                 bufferedPercentage = bufferedPercentage,
                 onCurrentTimeMsChange = {
@@ -619,43 +678,160 @@ fun VideoPlayerControlsFooter(
                 onFinishTimeChanging = {
                     onFinishTimeChanging(currentTimeSliderPosition.toFloat())
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .height(12.dp)
+                    .fillMaxWidth()
             )
         }
     }
 }
 
 @Composable
+fun CurrentTimeAndTotalDuration(
+    currentTimeMs: () -> Long,
+    totalDurationMs: () -> Long,
+    modifier: Modifier = Modifier,
+    currentTimeColor: Color = Color.White,
+    totalDurationColor: Color = MaterialTheme.colorScheme.outline,
+    fontSize: TextUnit = 14.sp
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = currentTimeMs().formatMillis(),
+            color = currentTimeColor,
+            fontSize = fontSize
+        )
+        Text(
+            text = "/ ${totalDurationMs().formatMillis()}",
+            color = totalDurationColor,
+            fontSize = fontSize
+        )
+    }
+}
+
+@Composable
 fun TimeAndBufferingView(
-    currentTimeMs: Long,
-    totalDurationMs: Long,
-    bufferedPercentage: Int,
+    currentTimeMs: () -> Long,
+    isUserEditingCurrentTime: Boolean,
+    totalDurationMs: () -> Long,
+    bufferedPercentage: () -> Int,
     onCurrentTimeMsChange: (Float) -> Unit,
     onFinishTimeChanging: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
-        Slider(
-            value = bufferedPercentage.toFloat(),
-            enabled = false,
-            onValueChange = {},
-            valueRange = 0f..100f,
-            colors = SliderDefaults.colors(
-                disabledThumbColor = Color.Transparent,
-                disabledActiveTrackColor = Color.Gray
-            ),
+        BufferedPercentageSlider(
+            bufferedPercentage = bufferedPercentage,
             modifier = Modifier.fillMaxWidth()
         )
-
-        Slider(
-            value = currentTimeMs.toFloat(),
-            onValueChange = {
-                onCurrentTimeMsChange(it)
-            },
-            onValueChangeFinished = onFinishTimeChanging,
-            valueRange = 0f..totalDurationMs.toFloat()
+        CurrentTimeSlider(
+            isUserEditingCurrentTime = isUserEditingCurrentTime,
+            currentTimeMs = currentTimeMs,
+            totalDurationMs = totalDurationMs,
+            onCurrentTimeMsChange = onCurrentTimeMsChange,
+            onFinishTimeChanging = onFinishTimeChanging,
+            modifier = Modifier.fillMaxWidth()
         )
     }
+}
+
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CurrentTimeSlider(
+    isUserEditingCurrentTime: Boolean,
+    currentTimeMs: () -> Long,
+    totalDurationMs: () -> Long,
+    onCurrentTimeMsChange: (Float) -> Unit,
+    onFinishTimeChanging: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val currentTimeSliderColors = SliderDefaults.colors(
+        thumbColor = MaterialTheme.colorScheme.primary,
+        inactiveTrackColor = Color.White.copy(alpha = 0.4f),
+        activeTrackColor = MaterialTheme.colorScheme.primary
+    )
+
+    Slider(
+        value = currentTimeMs().toFloat(),
+        onValueChange = onCurrentTimeMsChange,
+        interactionSource = interactionSource,
+        onValueChangeFinished = onFinishTimeChanging,
+        valueRange = 0f..totalDurationMs().toFloat(),
+        thumb = {
+            ThumbSizeIncreasingWhenActive(
+                interactionSource = interactionSource,
+                defaultSize = DpSize(12.dp, 12.dp),
+                increasedActiveSize = DpSize(20.dp, 20.dp),
+                isActive = isUserEditingCurrentTime
+            )
+        },
+        track = { sliderState ->
+            SliderDefaults.Track(
+                sliderState = sliderState,
+                colors = currentTimeSliderColors,
+                modifier = Modifier.height(12.dp)
+            )
+        },
+        colors = currentTimeSliderColors,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun ThumbSizeIncreasingWhenActive(
+    interactionSource: MutableInteractionSource,
+    defaultSize: DpSize,
+    increasedActiveSize: DpSize,
+    isActive: Boolean,
+    modifier: Modifier = Modifier,
+    colors: SliderColors = SliderDefaults.colors(),
+) {
+    val thumbModifier = if (!isActive) {
+        modifier.offset(
+            y = (increasedActiveSize.height - defaultSize.height) / 2
+        )
+    } else {
+        modifier
+    }
+
+    SliderDefaults.Thumb(
+        interactionSource = interactionSource,
+        colors = colors,
+        thumbSize = if (!isActive) defaultSize else increasedActiveSize,
+        modifier = thumbModifier
+    )
+}
+
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BufferedPercentageSlider(
+    @IntRange(from = 0, to = 100) bufferedPercentage: () -> Int,
+    modifier: Modifier = Modifier
+) {
+    val bufferedSliderColors = SliderDefaults.colors(
+        disabledThumbColor = Color.Transparent,
+        disabledActiveTrackColor = Color.White
+    )
+    Slider(
+        value = bufferedPercentage().toFloat(),
+        enabled = false,
+        onValueChange = {},
+        valueRange = 0f..100f,
+        colors = bufferedSliderColors,
+        track = {
+            SliderDefaults.Track(
+                colors = bufferedSliderColors,
+                enabled = false,
+                sliderState = it,
+                modifier = Modifier.height(12.dp)
+            )
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -663,20 +839,24 @@ fun ControlButton(
     enabled: Boolean,
     onClick: () -> Unit,
     @DrawableRes drawableId: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconSize: Dp = 24.dp,
 ) {
     IconButton(
         onClick = onClick,
         enabled = enabled,
         colors = IconButtonDefaults.filledIconButtonColors(
             containerColor = Color.Black.copy(alpha = 0.5f),
-            contentColor = Color.White
+            disabledContainerColor = Color.Black.copy(alpha = 0.2f),
+            contentColor = Color.White,
+            disabledContentColor = Color.White.copy(alpha = 0.6f)
         ),
         modifier = modifier
     ) {
         Icon(
             painter = painterResource(drawableId),
-            contentDescription = "control_button_icon"
+            contentDescription = "control_button_icon",
+            modifier = Modifier.size(iconSize)
         )
     }
 }
@@ -739,9 +919,10 @@ fun setLandscape(context: Context) {
     activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 }
 
+@SuppressLint("SourceLockedOrientationActivity")
 fun setPortrait(context: Context) {
     val activity = context.findActivity()
-    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 }
 
 fun Long.formatMillis(): String {
