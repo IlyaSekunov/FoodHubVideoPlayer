@@ -23,9 +23,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,7 +68,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -366,10 +362,8 @@ fun VideoPlayerView(
 
         var isUserInteractingWithPlayer by rememberSaveable { mutableStateOf(false) }
 
-        LaunchedEffect(isUserInteractingWithPlayer) {
-            if (isUserInteractingWithPlayer) {
-                videoControlsState.visible = true
-            } else {
+        LaunchedEffect(videoControlsState.visible, isUserInteractingWithPlayer) {
+            if (videoControlsState.visible && !isUserInteractingWithPlayer) {
                 delay(PLAYER_CONTROLS_VISIBILITY_TIME)
                 videoControlsState.visible = false
             }
@@ -396,12 +390,7 @@ fun VideoPlayerView(
 
         VideoPlayer(
             player = player,
-            onStartInteraction = {
-                isUserInteractingWithPlayer = true
-            },
-            onFinishInteraction = {
-                isUserInteractingWithPlayer = false
-            },
+            onClick = { videoControlsState.visible = !videoControlsState.visible },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -463,8 +452,7 @@ fun BlackoutBackground(
 @Composable
 fun VideoPlayer(
     player: Player,
-    onStartInteraction: () -> Unit,
-    onFinishInteraction: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     AndroidView(
@@ -476,15 +464,7 @@ fun VideoPlayer(
                 clipToOutline = true
             }
         },
-        modifier = modifier
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown()
-                    onStartInteraction()
-                    waitForUpOrCancellation()
-                    onFinishInteraction()
-                }
-            }
+        modifier = modifier.noRippleClickable(onClick = onClick)
     )
 }
 
