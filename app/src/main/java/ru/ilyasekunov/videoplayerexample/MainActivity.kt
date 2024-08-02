@@ -8,6 +8,7 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,16 +24,15 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -222,16 +223,28 @@ fun videoPlayerStateListener(videoControlsState: VideoControlsState): Player.Lis
         }
     }
 
-fun videoPlayerStateRestorer(
+fun videoPlayerLifecycleObserver(
     videoPlayer: Player,
     videoControlsState: VideoControlsState
 ): DefaultLifecycleObserver = object : DefaultLifecycleObserver {
-    override fun onResume(owner: LifecycleOwner) {
+    override fun onStart(owner: LifecycleOwner) {
         super.onStart(owner)
+
+        // Restore state
         videoPlayer.seekTo(
             videoControlsState.currentMediaItemIndex,
             videoControlsState.currentTimeMs
         )
+
+        videoPlayer.prepare()
+        if (!videoControlsState.isPaused) {
+            videoPlayer.play()
+        }
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        super.onStop(owner)
+        videoPlayer.stop()
     }
 }
 
@@ -239,16 +252,17 @@ fun videoPlayerStateRestorer(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.auto(
+                lightScrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
+            )
+        )
 
         setContent {
-            VideoPlayerExampleTheme {
+            VideoPlayerExampleTheme(dynamicColor = false) {
                 FoodHubVideoPlayer(
                     videos = listOf(
-                        Video(
-                            url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
-                            title = "Some video"
-                        ),
                         Video(
                             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
                             title = "Some video"
@@ -287,25 +301,22 @@ fun FoodHubVideoPlayer(
             }
     }
 
+    val videoControlsState = rememberVideoControlsState(exoPlayer)
+
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(Unit) {
-        val observer = object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) {
-                super.onStart(owner)
-                if (!exoPlayer.isPlaying) {
-                    exoPlayer.play()
-                }
-            }
+        val playerListener = videoPlayerStateListener(videoControlsState)
+        val videoPlayerLifecycleObserver = videoPlayerLifecycleObserver(
+            videoPlayer = exoPlayer,
+            videoControlsState = videoControlsState
+        )
 
-            override fun onStop(owner: LifecycleOwner) {
-                exoPlayer.stop()
-                super.onStop(owner)
-            }
-        }
-        lifecycle.addObserver(observer)
+        exoPlayer.addListener(playerListener)
+        lifecycle.addObserver(videoPlayerLifecycleObserver)
 
         onDispose {
-            lifecycle.removeObserver(observer)
+            lifecycle.removeObserver(videoPlayerLifecycleObserver)
+            exoPlayer.removeListener(playerListener)
             exoPlayer.release()
         }
     }
@@ -313,8 +324,9 @@ fun FoodHubVideoPlayer(
     val configuration = LocalConfiguration.current
     val isFullScreen = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    VideoPlayerView(
+    VideoPlayerWithControls(
         player = exoPlayer,
+        videoControlsState = videoControlsState,
         isFullScreen = isFullScreen,
         onFullScreenClick = {
             if (isFullScreen) {
@@ -324,20 +336,18 @@ fun FoodHubVideoPlayer(
             }
         },
         modifier = modifier
-            .displayCutoutPadding()
-            .navigationBarsPadding()
     )
 }
 
 @Composable
-fun VideoPlayerView(
+fun VideoPlayerWithControls(
     player: Player,
+    videoControlsState: VideoControlsState,
     isFullScreen: Boolean,
     onFullScreenClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     BackHandler {
         if (isFullScreen) {
@@ -346,20 +356,6 @@ fun VideoPlayerView(
     }
 
     Box(modifier = modifier) {
-        val videoControlsState = rememberVideoControlsState(player)
-
-        DisposableEffect(Unit) {
-            val videoPlayerStateRestorer = videoPlayerStateRestorer(
-                videoPlayer = player,
-                videoControlsState = videoControlsState
-            )
-            lifecycle.addObserver(videoPlayerStateRestorer)
-
-            onDispose {
-                lifecycle.removeObserver(videoPlayerStateRestorer)
-            }
-        }
-
         var isUserInteractingWithPlayer by rememberSaveable { mutableStateOf(false) }
 
         LaunchedEffect(videoControlsState.visible, isUserInteractingWithPlayer) {
@@ -374,23 +370,16 @@ fun VideoPlayerView(
                 while (true) {
                     videoControlsState.currentTimeMs = player.contentPosition
                         .coerceAtLeast(0)
-                    delay(200)
+                    delay(400)
                 }
-            }
-        }
-
-        DisposableEffect(Unit) {
-            val playerListener = videoPlayerStateListener(videoControlsState)
-            player.addListener(playerListener)
-
-            onDispose {
-                player.removeListener(playerListener)
             }
         }
 
         VideoPlayer(
             player = player,
             onClick = { videoControlsState.visible = !videoControlsState.visible },
+            onDoubleClickInRightSide = player::seekForward,
+            onDoubleClickInLeftSize = player::seekBack,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -405,7 +394,7 @@ fun VideoPlayerView(
             onPauseClick = player::pause,
             onPreviousClick = player::seekToPrevious,
             onNextClick = player::seekToNext,
-            onReplayClick = player::seekBack,
+            onReplayClick = { player.seekTo(0) },
             onStartedTimeChanging = {
                 isUserInteractingWithPlayer = true
             },
@@ -453,6 +442,8 @@ fun BlackoutBackground(
 fun VideoPlayer(
     player: Player,
     onClick: () -> Unit,
+    onDoubleClickInRightSide: () -> Unit,
+    onDoubleClickInLeftSize: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     AndroidView(
@@ -464,7 +455,19 @@ fun VideoPlayer(
                 clipToOutline = true
             }
         },
-        modifier = modifier.noRippleClickable(onClick = onClick)
+        modifier = modifier
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onDoubleTap = { offset ->
+                        if (offset.x > size.width / 2) {
+                            onDoubleClickInRightSide()
+                        } else {
+                            onDoubleClickInLeftSize()
+                        }
+                    }
+                )
+            }
     )
 }
 
