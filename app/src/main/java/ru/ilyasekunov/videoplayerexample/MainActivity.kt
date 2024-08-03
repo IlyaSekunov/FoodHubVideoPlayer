@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -90,7 +89,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import ru.ilyasekunov.videoplayerexample.ui.theme.VideoPlayerExampleTheme
 import java.util.Locale
@@ -259,7 +257,6 @@ fun hideSystemUi(activity: Activity) {
     }
 }
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -272,21 +269,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             VideoPlayerExampleTheme(dynamicColor = false) {
-                Box(modifier = Modifier.safeContentPadding()) {
-                    FoodHubVideoPlayer(
-                        videos = listOf(
-                            Video(
-                                url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
-                                title = "Some video"
-                            )
-                        ),
-                        initiallyStartPlaying = true,
-                        autoRepeat = false,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                    )
-                }
+                FoodHubVideoPlayer(
+                    videos = listOf(
+                        Video(
+                            url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
+                            title = "Some video"
+                        )
+                    ),
+                    initiallyStartPlaying = true,
+                    autoRepeat = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
             }
         }
     }
