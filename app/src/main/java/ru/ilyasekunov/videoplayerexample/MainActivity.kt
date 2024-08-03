@@ -23,13 +23,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,7 +65,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -79,6 +78,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.MediaItem
@@ -248,6 +250,15 @@ fun videoPlayerLifecycleObserver(
     }
 }
 
+fun hideSystemUi(activity: Activity) {
+    with(activity) {
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -261,18 +272,21 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             VideoPlayerExampleTheme(dynamicColor = false) {
-                FoodHubVideoPlayer(
-                    videos = listOf(
-                        Video(
-                            url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
-                            title = "Some video"
-                        )
-                    ),
-                    initiallyStartPlaying = true,
-                    autoRepeat = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                )
+                Box(modifier = Modifier.safeContentPadding()) {
+                    FoodHubVideoPlayer(
+                        videos = listOf(
+                            Video(
+                                url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
+                                title = "Some video"
+                            )
+                        ),
+                        initiallyStartPlaying = true,
+                        autoRepeat = false,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                    )
+                }
             }
         }
     }
@@ -348,6 +362,10 @@ fun VideoPlayerWithControls(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    if (isFullScreen) {
+        hideSystemUi(context as Activity)
+    }
 
     BackHandler {
         if (isFullScreen) {
@@ -519,6 +537,7 @@ fun VideoPlayerControls(
 
         VideoPlayerControlsFooter(
             visible = videoControlsState.visible,
+            isFullScreen = isFullScreen,
             isUserEditingCurrentTime = isUserEditingCurrentTime,
             currentTimeMs = { videoControlsState.currentTimeMs },
             totalDurationMs = { videoControlsState.totalDurationMs },
@@ -644,6 +663,7 @@ fun VideoPlayerControlsMiddle(
 @Composable
 fun VideoPlayerControlsFooter(
     visible: Boolean,
+    isFullScreen: Boolean,
     isUserEditingCurrentTime: Boolean,
     currentTimeMs: () -> Long,
     totalDurationMs: () -> Long,
@@ -687,9 +707,11 @@ fun VideoPlayerControlsFooter(
                 ) {
                     CurrentTimeAndTotalDuration(
                         currentTimeMs = currentTimeMs,
-                        totalDurationMs = totalDurationMs
+                        totalDurationMs = totalDurationMs,
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                     FullScreenButton(
+                        isFullScreen = isFullScreen,
                         onClick = onFullScreenClick,
                         modifier = Modifier
                     )
@@ -923,6 +945,7 @@ fun ControlButton(
 
 @Composable
 fun FullScreenButton(
+    isFullScreen: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -933,10 +956,17 @@ fun FullScreenButton(
         ),
         modifier = modifier
     ) {
-        Icon(
-            painter = painterResource(R.drawable.outline_fullscreen_24),
-            contentDescription = "full_screen_button"
-        )
+        if (isFullScreen) {
+            Icon(
+                painter = painterResource(R.drawable.baseline_fullscreen_exit_24),
+                contentDescription = "exit_full_screen_button"
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.outline_fullscreen_24),
+                contentDescription = "full_screen_button"
+            )
+        }
     }
 }
 
@@ -958,14 +988,6 @@ fun NavigateBackArrow(
             contentDescription = "arrow_back_icon"
         )
     }
-}
-
-fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
-    this.clickable(
-        interactionSource = remember { MutableInteractionSource() },
-        indication = null,
-        onClick = onClick
-    )
 }
 
 fun Context.findActivity(): Activity? = when (this) {
