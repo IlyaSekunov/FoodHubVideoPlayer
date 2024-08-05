@@ -56,7 +56,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import ru.ilyasekunov.videoplayerexample.R
-import ru.ilyasekunov.videoplayerexample.util.formatMillis
+import java.util.Locale
 
 data class Video(
     val url: String,
@@ -188,6 +188,7 @@ fun VideoPlayerControls(
             navigateBack = navigateBack,
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = 10.dp)
                 .align(Alignment.TopCenter)
         )
 
@@ -226,7 +227,7 @@ fun VideoPlayerControls(
             },
             onFullScreenClick = onFullScreenClick,
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = 20.dp, end = 8.dp, start = 8.dp)
                 .align(Alignment.BottomCenter)
         )
     }
@@ -363,33 +364,15 @@ private fun VideoPlayerControlsFooter(
             }
 
             if (isUserEditingCurrentTime) {
-                Text(
-                    text = currentTimeSliderPosition.formatMillis(),
-                    color = Color.White,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .padding(8.dp)
-                )
+                CurrentEditingTime(currentTimeMs = { currentTimeSliderPosition })
             } else {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                TimeWithFullScreenButtonSection(
+                    currentTimeMs = currentTimeMs,
+                    totalDurationMs = totalDurationMs,
+                    isFullScreen = isFullScreen,
+                    onFullScreenClick = onFullScreenClick,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    CurrentTimeAndTotalDuration(
-                        currentTimeMs = currentTimeMs,
-                        totalDurationMs = totalDurationMs,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                    FullScreenButton(
-                        isFullScreen = isFullScreen,
-                        onClick = onFullScreenClick,
-                        modifier = Modifier
-                    )
-                }
+                )
             }
 
             TimeAndBufferingView(
@@ -418,6 +401,50 @@ private fun VideoPlayerControlsFooter(
             )
         }
     }
+}
+
+@Composable
+fun TimeWithFullScreenButtonSection(
+    currentTimeMs: () -> Long,
+    totalDurationMs: () -> Long,
+    isFullScreen: Boolean,
+    onFullScreenClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        CurrentTimeAndTotalDuration(
+            currentTimeMs = currentTimeMs,
+            totalDurationMs = totalDurationMs,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        FullScreenButton(
+            isFullScreen = isFullScreen,
+            onClick = onFullScreenClick,
+            modifier = Modifier
+        )
+    }
+}
+
+@Composable
+private fun CurrentEditingTime(
+    currentTimeMs: () -> Long,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = currentTimeMs().formatMillis(),
+        color = Color.White,
+        modifier = modifier
+            .offset(y = (-16).dp)
+            .fillMaxWidth()
+            .wrapContentWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(8.dp)
+    )
 }
 
 @Composable
@@ -662,4 +689,16 @@ private fun NavigateBackArrow(
             contentDescription = "arrow_back_icon"
         )
     }
+}
+
+private fun Long.formatMillis(): String {
+    val seconds = this / 1000
+    val minutesFormatted = seconds / 60
+    val secondsAfterMinute = seconds % 60
+
+    return String.format(
+        locale = Locale.getDefault(),
+        format = "%02d:%02d",
+        args = arrayOf(minutesFormatted, secondsAfterMinute)
+    )
 }

@@ -12,8 +12,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +39,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
+import ru.ilyasekunov.videoplayerexample.ui.ifTrue
 import ru.ilyasekunov.videoplayerexample.util.hideSystemUi
 import ru.ilyasekunov.videoplayerexample.util.setLandscape
 import ru.ilyasekunov.videoplayerexample.util.setPortrait
@@ -97,7 +100,8 @@ fun FoodHubVideoPlayer(
     videos: List<Video>,
     initiallyStartPlaying: Boolean,
     autoRepeat: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    aspectRatio: Float = 16f / 9f
 ) {
     val context = LocalContext.current
 
@@ -149,6 +153,13 @@ fun FoodHubVideoPlayer(
             }
         },
         modifier = modifier
+            .systemBarsPadding()
+            .ifTrue(isFullScreen) {
+                fillMaxSize()
+            }
+            .ifTrue(!isFullScreen) {
+                aspectRatio(aspectRatio)
+            }
     )
 }
 
@@ -226,7 +237,7 @@ private fun VideoPlayerWithControls(
             },
             modifier = Modifier
                 .fillMaxSize()
-                .safeContentPadding()
+                .displayCutoutPadding()
         )
     }
 }

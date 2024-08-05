@@ -8,7 +8,6 @@ import android.content.pm.ActivityInfo
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import java.util.Locale
 
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -25,18 +24,6 @@ fun setLandscape(context: Context) {
 fun setPortrait(context: Context) {
     val activity = context.findActivity()
     activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-}
-
-fun Long.formatMillis(): String {
-    val seconds = this / 1000
-    val minutesFormatted = seconds / 60
-    val secondsAfterMinute = seconds % 60
-
-    return String.format(
-        locale = Locale.getDefault(),
-        format = "%02d:%02d",
-        args = arrayOf(minutesFormatted, secondsAfterMinute)
-    )
 }
 
 fun hideSystemUi(activity: Activity) {

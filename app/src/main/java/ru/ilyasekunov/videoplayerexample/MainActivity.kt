@@ -32,8 +32,7 @@ class MainActivity : ComponentActivity() {
                     ),
                     initiallyStartPlaying = true,
                     autoRepeat = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
