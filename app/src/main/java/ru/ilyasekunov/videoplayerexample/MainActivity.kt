@@ -28,6 +28,10 @@ class MainActivity : ComponentActivity() {
                         Video(
                             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
                             title = "Some video"
+                        ),
+                        Video(
+                            url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
+                            title = "Some video"
                         )
                     ),
                     initiallyStartPlaying = true,

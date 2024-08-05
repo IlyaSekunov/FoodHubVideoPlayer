@@ -39,7 +39,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
-import ru.ilyasekunov.videoplayerexample.ui.ifTrue
+import ru.ilyasekunov.videoplayerexample.ui.conditional
 import ru.ilyasekunov.videoplayerexample.util.hideSystemUi
 import ru.ilyasekunov.videoplayerexample.util.setLandscape
 import ru.ilyasekunov.videoplayerexample.util.setPortrait
@@ -100,8 +100,7 @@ fun FoodHubVideoPlayer(
     videos: List<Video>,
     initiallyStartPlaying: Boolean,
     autoRepeat: Boolean,
-    modifier: Modifier = Modifier,
-    aspectRatio: Float = 16f / 9f
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
@@ -154,12 +153,11 @@ fun FoodHubVideoPlayer(
         },
         modifier = modifier
             .systemBarsPadding()
-            .ifTrue(isFullScreen) {
-                fillMaxSize()
-            }
-            .ifTrue(!isFullScreen) {
-                aspectRatio(aspectRatio)
-            }
+            .conditional(
+                condition = isFullScreen,
+                trueBlock = { fillMaxSize() },
+                falseBlock = { aspectRatio(16f / 9f) }
+            )
     )
 }
 

@@ -3,10 +3,9 @@ package ru.ilyasekunov.videoplayerexample.ui.player
 import androidx.annotation.DrawableRes
 import androidx.annotation.IntRange
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -242,8 +242,8 @@ private fun VideoPlayerControlsHeader(
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically(),
+        enter = fadeIn(),
+        exit = fadeOut(),
         visible = visible,
         modifier = modifier
     ) {
@@ -276,55 +276,72 @@ private fun VideoPlayerControlsMiddle(
     onReplayClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(30.dp),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(30.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (hasPreviousMediaItem || hasNextMediaItem) {
+        if (hasPreviousMediaItem || hasNextMediaItem) {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = modifier
+            ) {
                 ControlButton(
                     enabled = hasPreviousMediaItem,
                     onClick = onPreviousClick,
                     drawableId = R.drawable.baseline_skip_previous_24
                 )
             }
+        }
 
-            if (isPlaying) {
-                ControlButton(
-                    enabled = true,
-                    onClick = onPauseClick,
-                    drawableId = R.drawable.baseline_pause_24,
-                    iconSize = 28.dp,
-                    modifier = Modifier.size(52.dp)
-                )
-            } else if (isPaused) {
-                ControlButton(
-                    enabled = true,
-                    onClick = onPlayClick,
-                    drawableId = R.drawable.baseline_play_arrow_24,
-                    iconSize = 28.dp,
-                    modifier = Modifier.size(52.dp)
-                )
-            } else if (isEnded) {
-                ControlButton(
-                    enabled = true,
-                    onClick = onReplayClick,
-                    drawableId = R.drawable.baseline_replay_24,
-                    iconSize = 28.dp,
-                    modifier = Modifier.size(52.dp)
-                )
-            } else if (isLoading) {
-                PlayerLoadingIndicator(
-                    modifier = Modifier.size(52.dp)
-                )
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(48.dp)
+            )
+        } else {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                if (isPlaying) {
+                    ControlButton(
+                        enabled = true,
+                        onClick = onPauseClick,
+                        drawableId = R.drawable.baseline_pause_24,
+                        iconSize = 28.dp,
+                        modifier = Modifier.size(52.dp)
+                    )
+                } else if (isPaused) {
+                    ControlButton(
+                        enabled = true,
+                        onClick = onPlayClick,
+                        drawableId = R.drawable.baseline_play_arrow_24,
+                        iconSize = 28.dp,
+                        modifier = Modifier.size(52.dp)
+                    )
+                } else if (isEnded) {
+                    ControlButton(
+                        enabled = true,
+                        onClick = onReplayClick,
+                        drawableId = R.drawable.baseline_replay_24,
+                        iconSize = 28.dp,
+                        modifier = Modifier.size(52.dp)
+                    )
+                }
             }
+        }
 
-            if (hasPreviousMediaItem || hasNextMediaItem) {
+        if (hasPreviousMediaItem || hasNextMediaItem) {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 ControlButton(
                     enabled = hasNextMediaItem,
                     onClick = onNextClick,
@@ -350,12 +367,8 @@ private fun VideoPlayerControlsFooter(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn() + slideInVertically(
-            initialOffsetY = { it / 2 }
-        ),
-        exit = fadeOut() + slideOutVertically(
-            targetOffsetY = { it / 2 }
-        ),
+        enter = fadeIn(),
+        exit = fadeOut(),
         modifier = modifier
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -530,13 +543,6 @@ private fun CurrentTimeSlider(
                 isActive = isUserEditingCurrentTime
             )
         },
-        track = { sliderState ->
-            SliderDefaults.Track(
-                sliderState = sliderState,
-                colors = currentTimeSliderColors,
-                modifier = Modifier.height(12.dp)
-            )
-        },
         colors = currentTimeSliderColors,
         modifier = modifier
     )
@@ -551,23 +557,34 @@ private fun ThumbSizeIncreasingWhenActive(
     modifier: Modifier = Modifier,
     colors: SliderColors = SliderDefaults.colors(),
 ) {
-    val thumbModifier = if (!isActive) {
-        modifier.offset(
-            y = (increasedActiveSize.height - defaultSize.height) / 2
-        )
-    } else {
-        modifier
-    }
+    val thumbWidth by animateDpAsState(
+        targetValue = if (isActive) increasedActiveSize.width else defaultSize.width,
+        label = "thumbWidth"
+    )
+    val thumbHeight by animateDpAsState(
+        targetValue = if (isActive) increasedActiveSize.height else defaultSize.height,
+        label = "thumbHeight"
+    )
+    val thumbOffset by animateDpAsState(
+        targetValue = if (!isActive) {
+            (increasedActiveSize.height - defaultSize.height) / 2
+        } else {
+            0.dp
+        },
+        label = "thumbOffset"
+    )
 
     SliderDefaults.Thumb(
         interactionSource = interactionSource,
         colors = colors,
         thumbSize = if (!isActive) defaultSize else increasedActiveSize,
-        modifier = thumbModifier
+        modifier = modifier
+            .offset(y = thumbOffset)
+            .height(thumbHeight)
+            .width(thumbWidth)
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BufferedPercentageSlider(
     @IntRange(from = 0, to = 100) bufferedPercentage: () -> Int,
@@ -583,38 +600,8 @@ private fun BufferedPercentageSlider(
         onValueChange = {},
         valueRange = 0f..100f,
         colors = bufferedSliderColors,
-        track = {
-            SliderDefaults.Track(
-                colors = bufferedSliderColors,
-                enabled = false,
-                sliderState = it,
-                modifier = Modifier.height(12.dp)
-            )
-        },
         modifier = modifier
     )
-}
-
-@Composable
-private fun PlayerLoadingIndicator(
-    modifier: Modifier = Modifier,
-    indicatorColor: Color = Color.White,
-) {
-    IconButton(
-        onClick = {},
-        enabled = false,
-        colors = IconButtonDefaults.filledIconButtonColors(
-            disabledContainerColor = Color.Black.copy(alpha = 0.5f),
-            disabledContentColor = Color.White
-        ),
-        modifier = modifier
-    ) {
-        CircularProgressIndicator(
-            color = indicatorColor,
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(24.dp)
-        )
-    }
 }
 
 @Composable

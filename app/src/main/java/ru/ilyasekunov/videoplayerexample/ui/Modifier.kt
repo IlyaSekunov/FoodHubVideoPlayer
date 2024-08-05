@@ -8,3 +8,13 @@ fun Modifier.ifTrue(condition: Boolean, block: Modifier.() -> Modifier): Modifie
     } else {
         this
     }
+
+fun Modifier.conditional(
+    condition: Boolean,
+    trueBlock: Modifier.() -> Modifier,
+    falseBlock: Modifier.() -> Modifier,
+): Modifier = if (condition) {
+    this.trueBlock()
+} else {
+    this.falseBlock()
+}
