@@ -9,6 +9,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,15 +26,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
@@ -56,7 +54,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
@@ -67,6 +67,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import kotlinx.coroutines.launch
 import ru.ilyasekunov.videoplayerexample.R
+import ru.ilyasekunov.videoplayerexample.ui.ifTrue
 import java.util.Locale
 
 data class Video(
@@ -198,7 +199,9 @@ fun VideoPlayerControls(
 
     BlackoutBackground(
         visible = videoControlsState.visible || shouldShowSeekForwardAnimation != null,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .testTag("BlackoutBackground")
+            .fillMaxSize()
     )
 
     Box(
@@ -293,6 +296,7 @@ fun VideoPlayerControls(
                     videoControlsState.visible = shouldShowControlsAfterAnimation
                 },
                 modifier = Modifier
+                    .testTag("SeekAnimation")
                     .align(Alignment.Center)
                     .offset(
                         x = if (isForward) {
@@ -343,12 +347,17 @@ private fun VideoPlayerControlsHeader(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (isFullScreen) {
-                NavigateBackArrow(onClick = navigateBack)
+                NavigateBackArrow(
+                    onClick = navigateBack,
+                    modifier = Modifier.testTag("VideoPlayerNavigateBackButton")
+                )
             }
             Text(
                 text = title,
                 color = Color.White,
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier
+                    .testTag("VideoPlayerVideoTitle")
+                    .align(Alignment.Center)
             )
         }
     }
@@ -371,7 +380,7 @@ private fun VideoPlayerControlsMiddle(
     modifier: Modifier = Modifier
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(30.dp),
+        horizontalArrangement = Arrangement.spacedBy(50.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
@@ -379,13 +388,13 @@ private fun VideoPlayerControlsMiddle(
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = modifier
+                exit = fadeOut()
             ) {
                 ControlButton(
                     enabled = hasPreviousMediaItem,
                     onClick = onPreviousClick,
-                    drawableId = R.drawable.baseline_skip_previous_24
+                    drawableId = R.drawable.baseline_skip_previous_24,
+                    modifier = Modifier.testTag("VideoPlayerPreviousButton")
                 )
             }
         }
@@ -394,7 +403,9 @@ private fun VideoPlayerControlsMiddle(
             CircularProgressIndicator(
                 color = Color.White,
                 strokeWidth = 2.dp,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .testTag("VideoPlayerLoadingIndicator")
+                    .size(48.dp)
             )
         } else {
             AnimatedVisibility(
@@ -407,24 +418,24 @@ private fun VideoPlayerControlsMiddle(
                         enabled = true,
                         onClick = onPauseClick,
                         drawableId = R.drawable.baseline_pause_24,
-                        iconSize = 28.dp,
-                        modifier = Modifier.size(52.dp)
+                        iconSize = 38.dp,
+                        modifier = Modifier.testTag("VideoPlayerPauseButton")
                     )
                 } else if (isPaused) {
                     ControlButton(
                         enabled = true,
                         onClick = onPlayClick,
                         drawableId = R.drawable.baseline_play_arrow_24,
-                        iconSize = 28.dp,
-                        modifier = Modifier.size(52.dp)
+                        iconSize = 38.dp,
+                        modifier = Modifier.testTag("VideoPlayerPlayButton")
                     )
                 } else if (isEnded) {
                     ControlButton(
                         enabled = true,
                         onClick = onReplayClick,
                         drawableId = R.drawable.baseline_replay_24,
-                        iconSize = 28.dp,
-                        modifier = Modifier.size(52.dp)
+                        iconSize = 38.dp,
+                        modifier = Modifier.testTag("VideoPlayerRepeatButton")
                     )
                 }
             }
@@ -439,7 +450,8 @@ private fun VideoPlayerControlsMiddle(
                 ControlButton(
                     enabled = hasNextMediaItem,
                     onClick = onNextClick,
-                    drawableId = R.drawable.baseline_skip_next_24
+                    drawableId = R.drawable.baseline_skip_next_24,
+                    modifier = Modifier.testTag("VideoPlayerNextButton")
                 )
             }
         }
@@ -471,14 +483,19 @@ private fun VideoPlayerControlsFooter(
             }
 
             if (isUserEditingCurrentTime) {
-                CurrentEditingTime(currentTimeMs = { currentTimeSliderPosition })
+                CurrentEditingTime(
+                    currentTimeMs = { currentTimeSliderPosition },
+                    modifier = Modifier.testTag("VideoPlayerCurrentEditingTime")
+                )
             } else {
                 TimeWithFullScreenButtonSection(
                     currentTimeMs = currentTimeMs,
                     totalDurationMs = totalDurationMs,
                     isFullScreen = isFullScreen,
                     onFullScreenClick = onFullScreenClick,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .testTag("VideoPlayerTimeWithFullScreenButtonSection")
+                        .fillMaxWidth()
                 )
             }
 
@@ -503,6 +520,7 @@ private fun VideoPlayerControlsFooter(
                     onFinishTimeChanging(currentTimeSliderPosition.toFloat())
                 },
                 modifier = Modifier
+                    .testTag("VideoPlayerTimeAndBufferingView")
                     .height(12.dp)
                     .fillMaxWidth()
             )
@@ -526,12 +544,14 @@ fun TimeWithFullScreenButtonSection(
         CurrentTimeAndTotalDuration(
             currentTimeMs = currentTimeMs,
             totalDurationMs = totalDurationMs,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier
+                .testTag("VideoPlayerCurrentTimeAndTotalDuration")
+                .padding(horizontal = 20.dp)
         )
         FullScreenButton(
             isFullScreen = isFullScreen,
             onClick = onFullScreenClick,
-            modifier = Modifier
+            modifier = Modifier.testTag("VideoPlayerFullScreenButton")
         )
     }
 }
@@ -601,7 +621,9 @@ private fun TimeAndBufferingView(
             totalDurationMs = totalDurationMs,
             onCurrentTimeMsChange = onCurrentTimeMsChange,
             onFinishTimeChanging = onFinishTimeChanging,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .testTag("VideoPlayerCurrentTimeSlider")
+                .fillMaxWidth()
         )
     }
 }
@@ -705,21 +727,31 @@ private fun ControlButton(
     @DrawableRes drawableId: Int,
     modifier: Modifier = Modifier,
     iconSize: Dp = 24.dp,
+    withBackground: Boolean = true,
+    padding: Dp = iconSize / 4,
 ) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = Color.Black.copy(alpha = 0.5f),
-            disabledContainerColor = Color.Black.copy(alpha = 0.2f),
-            contentColor = Color.White,
-            disabledContentColor = Color.White.copy(alpha = 0.6f)
-        ),
+    Box(
         modifier = modifier
+            .clip(CircleShape)
+            .ifTrue(withBackground) {
+                background(
+                    color = Color.Black.copy(alpha = if (enabled) 0.5f else 0.3f),
+                    shape = CircleShape
+                )
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = rememberRipple(color = Color.White),
+                onClick = onClick,
+                enabled = enabled,
+                role = Role.Button
+            )
+            .padding(padding)
     ) {
         Icon(
             painter = painterResource(drawableId),
-            contentDescription = "control_button_icon",
+            contentDescription = "control_icon_button",
+            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.6f),
             modifier = Modifier.size(iconSize)
         )
     }
@@ -731,25 +763,19 @@ private fun FullScreenButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    IconButton(
+    ControlButton(
+        iconSize = 22.dp,
+        enabled = true,
+        withBackground = false,
+        padding = 14.dp,
         onClick = onClick,
-        colors = IconButtonDefaults.outlinedIconButtonColors(
-            contentColor = Color.White
-        ),
-        modifier = modifier
-    ) {
-        if (isFullScreen) {
-            Icon(
-                painter = painterResource(R.drawable.baseline_fullscreen_exit_24),
-                contentDescription = "exit_full_screen_button"
-            )
+        drawableId = if (isFullScreen) {
+            R.drawable.baseline_fullscreen_exit_24
         } else {
-            Icon(
-                painter = painterResource(R.drawable.outline_fullscreen_24),
-                contentDescription = "full_screen_button"
-            )
-        }
-    }
+            R.drawable.outline_fullscreen_24
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -757,19 +783,15 @@ private fun NavigateBackArrow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    IconButton(
+    ControlButton(
+        iconSize = 22.dp,
+        enabled = true,
+        withBackground = false,
+        padding = 14.dp,
         onClick = onClick,
-        colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = Color.White
-        ),
+        drawableId = R.drawable.baseline_arrow_back_24,
         modifier = modifier
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "arrow_back_icon"
-        )
-    }
+    )
 }
 
 private fun Long.formatMillis(): String {

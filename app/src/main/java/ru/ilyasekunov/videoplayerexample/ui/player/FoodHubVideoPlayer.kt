@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -192,7 +193,9 @@ private fun VideoPlayerWithControls(
 
         VideoPlayer(
             player = player,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .testTag("VideoPlayer")
+                .fillMaxSize()
         )
 
         VideoPlayerControls(
@@ -220,6 +223,7 @@ private fun VideoPlayerWithControls(
                 }
             },
             modifier = Modifier
+                .testTag("VideoPlayerControls")
                 .fillMaxSize()
                 .displayCutoutPadding()
         )
@@ -241,8 +245,7 @@ fun VideoPlayer(
                     useController = false
                     clipToOutline = true
                 }
-            },
-            modifier = modifier
+            }
         )
     }
 }
