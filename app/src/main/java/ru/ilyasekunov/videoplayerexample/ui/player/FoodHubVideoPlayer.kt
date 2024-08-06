@@ -4,13 +4,6 @@ import android.app.Activity
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.displayCutoutPadding
@@ -25,8 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -44,9 +35,9 @@ import ru.ilyasekunov.videoplayerexample.util.hideSystemUi
 import ru.ilyasekunov.videoplayerexample.util.setLandscape
 import ru.ilyasekunov.videoplayerexample.util.setPortrait
 
-private const val PLAYER_SEEK_BACK_INCREMENT = 10 * 1000L // 10 seconds
-private const val PLAYER_SEEK_FORWARD_INCREMENT = 10 * 1000L // 10 seconds
-private const val PLAYER_CONTROLS_VISIBILITY_TIME = 5 * 1000L // 5 seconds
+internal const val PLAYER_SEEK_BACK_INCREMENT = 10 * 1000L // 10 seconds
+internal const val PLAYER_SEEK_FORWARD_INCREMENT = 10 * 1000L // 10 seconds
+internal const val PLAYER_CONTROLS_VISIBILITY_TIME = 5 * 1000L // 5 seconds
 
 private fun videoPlayerStateListener(videoControlsState: VideoControlsState): Player.Listener =
     object : Player.Listener {
@@ -201,19 +192,14 @@ private fun VideoPlayerWithControls(
 
         VideoPlayer(
             player = player,
-            onClick = { videoControlsState.visible = !videoControlsState.visible },
-            onDoubleClickInRightSide = player::seekForward,
-            onDoubleClickInLeftSize = player::seekBack,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        BlackoutBackground(
-            visible = videoControlsState.visible,
             modifier = Modifier.fillMaxSize()
         )
 
         VideoPlayerControls(
             videoControlsState = videoControlsState,
+            onClick = { videoControlsState.visible = !videoControlsState.visible },
+            onSeekForward = player::seekForward,
+            onSeekBack = player::seekBack,
             onPlayClick = player::play,
             onPauseClick = player::pause,
             onPreviousClick = player::seekToPrevious,
@@ -240,57 +226,23 @@ private fun VideoPlayerWithControls(
     }
 }
 
-@Composable
-private fun BlackoutBackground(
-    visible: Boolean,
-    modifier: Modifier = Modifier,
-    enterTransition: EnterTransition = fadeIn(),
-    exitTransition: ExitTransition = fadeOut(),
-) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = enterTransition,
-        exit = exitTransition,
-        modifier = modifier
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = Color.Black.copy(alpha = 0.5f))
-        )
-    }
-}
-
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayer(
     player: Player,
-    onClick: () -> Unit,
-    onDoubleClickInRightSide: () -> Unit,
-    onDoubleClickInLeftSize: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AndroidView(
-        factory = {
-            PlayerView(it).apply {
-                this.player = player
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                useController = false
-                clipToOutline = true
-            }
-        },
-        modifier = modifier
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onDoubleTap = { offset ->
-                        if (offset.x > size.width / 2) {
-                            onDoubleClickInRightSide()
-                        } else {
-                            onDoubleClickInLeftSize()
-                        }
-                    }
-                )
-            }
-    )
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = {
+                PlayerView(it).apply {
+                    this.player = player
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    useController = false
+                    clipToOutline = true
+                }
+            },
+            modifier = modifier
+        )
+    }
 }

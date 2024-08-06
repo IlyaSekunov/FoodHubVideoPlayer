@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">VideoPlayerExample</string>
+    <string name="video_player_seek_seconds">секунд</string>
 </resources>

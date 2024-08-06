@@ -3,15 +3,21 @@ package ru.ilyasekunov.videoplayerexample.ui.player
 import androidx.annotation.DrawableRes
 import androidx.annotation.IntRange
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -22,6 +28,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,6 +46,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -46,6 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
@@ -55,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import kotlinx.coroutines.launch
 import ru.ilyasekunov.videoplayerexample.R
 import java.util.Locale
 
@@ -166,6 +177,9 @@ fun rememberVideoControlsState(player: Player) =
 @Composable
 fun VideoPlayerControls(
     videoControlsState: VideoControlsState,
+    onClick: () -> Unit,
+    onSeekForward: () -> Unit,
+    onSeekBack: () -> Unit,
     onPlayClick: () -> Unit,
     onPauseClick: () -> Unit,
     onPreviousClick: () -> Unit,
@@ -178,7 +192,42 @@ fun VideoPlayerControls(
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val coroutineScope = rememberCoroutineScope()
+    var shouldShowSeekForwardAnimation by remember { mutableStateOf<Boolean?>(null) }
+
+    BlackoutBackground(
+        visible = videoControlsState.visible || shouldShowSeekForwardAnimation != null,
+        modifier = Modifier.fillMaxSize()
+    )
+
+    Box(
+        modifier = modifier
+            .indication(
+                interactionSource = interactionSource,
+                indication = rememberRipple(color = Color.White)
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onDoubleTap = { offset ->
+                        val indication = PressInteraction.Press(offset)
+                        coroutineScope.launch {
+                            interactionSource.emit(indication)
+                            interactionSource.emit(PressInteraction.Release(indication))
+                        }
+
+                        if (offset.x > size.width / 2) {
+                            onSeekForward()
+                            shouldShowSeekForwardAnimation = true
+                        } else {
+                            onSeekBack()
+                            shouldShowSeekForwardAnimation = false
+                        }
+                    }
+                )
+            }
+    ) {
         var isUserEditingCurrentTime by rememberSaveable { mutableStateOf(false) }
 
         VideoPlayerControlsHeader(
@@ -229,6 +278,51 @@ fun VideoPlayerControls(
             modifier = Modifier
                 .padding(bottom = 20.dp, end = 8.dp, start = 8.dp)
                 .align(Alignment.BottomCenter)
+        )
+
+        val screenWidth = LocalConfiguration.current.screenWidthDp
+        val seekAnimationOffset = screenWidth / 4
+        shouldShowSeekForwardAnimation?.let { isForward ->
+            val shouldShowControlsAfterAnimation = videoControlsState.visible
+            videoControlsState.visible = false
+
+            SeekAnimation(
+                isForward = isForward,
+                onFinish = {
+                    shouldShowSeekForwardAnimation = null
+                    videoControlsState.visible = shouldShowControlsAfterAnimation
+                },
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .offset(
+                        x = if (isForward) {
+                            seekAnimationOffset.dp
+                        } else {
+                            (-seekAnimationOffset).dp
+                        }
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun BlackoutBackground(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    enterTransition: EnterTransition = fadeIn(),
+    exitTransition: ExitTransition = fadeOut(),
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = enterTransition,
+        exit = exitTransition,
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = Color.Black.copy(alpha = 0.5f))
         )
     }
 }
