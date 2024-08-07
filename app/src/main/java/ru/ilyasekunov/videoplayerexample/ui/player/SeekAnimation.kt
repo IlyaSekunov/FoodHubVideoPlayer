@@ -26,7 +26,7 @@ import kotlinx.coroutines.delay
 import ru.ilyasekunov.videoplayerexample.R
 
 @Composable
-fun SeekAnimation(
+internal fun SeekAnimation(
     isForward: Boolean,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier

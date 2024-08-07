@@ -11,9 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +42,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -65,7 +62,6 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
-import kotlinx.coroutines.launch
 import ru.ilyasekunov.videoplayerexample.R
 import ru.ilyasekunov.videoplayerexample.ui.ifTrue
 import java.util.Locale
@@ -75,10 +71,10 @@ data class Video(
     val title: String
 )
 
-fun List<Video>.toMediaItems(): List<MediaItem> =
+internal fun List<Video>.toMediaItems(): List<MediaItem> =
     map { it.toMediaItem() }
 
-fun Video.toMediaItem(): MediaItem =
+internal fun Video.toMediaItem(): MediaItem =
     MediaItem.Builder()
         .setUri(url)
         .setMediaMetadata(
@@ -89,7 +85,7 @@ fun Video.toMediaItem(): MediaItem =
         .build()
 
 @Stable
-class VideoControlsState(
+internal class VideoControlsState(
     visible: Boolean = false,
     isPlaying: Boolean = false,
     isPaused: Boolean = false,
@@ -159,7 +155,7 @@ class VideoControlsState(
 }
 
 @Composable
-fun rememberVideoControlsState(player: Player) =
+internal fun rememberVideoControlsState(player: Player) =
     rememberSaveable(player, saver = VideoControlsState.Saver) {
         VideoControlsState(
             isPlaying = player.isPlaying,
@@ -176,7 +172,7 @@ fun rememberVideoControlsState(player: Player) =
     }
 
 @Composable
-fun VideoPlayerControls(
+internal fun VideoPlayerControls(
     videoControlsState: VideoControlsState,
     onClick: () -> Unit,
     onSeekForward: () -> Unit,
@@ -193,8 +189,6 @@ fun VideoPlayerControls(
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val coroutineScope = rememberCoroutineScope()
     var shouldShowSeekForwardAnimation by remember { mutableStateOf<Boolean?>(null) }
 
     BlackoutBackground(
@@ -206,20 +200,10 @@ fun VideoPlayerControls(
 
     Box(
         modifier = modifier
-            .indication(
-                interactionSource = interactionSource,
-                indication = rememberRipple(color = Color.White)
-            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { onClick() },
                     onDoubleTap = { offset ->
-                        val indication = PressInteraction.Press(offset)
-                        coroutineScope.launch {
-                            interactionSource.emit(indication)
-                            interactionSource.emit(PressInteraction.Release(indication))
-                        }
-
                         if (offset.x > size.width / 2) {
                             onSeekForward()
                             shouldShowSeekForwardAnimation = true
@@ -529,7 +513,7 @@ private fun VideoPlayerControlsFooter(
 }
 
 @Composable
-fun TimeWithFullScreenButtonSection(
+private fun TimeWithFullScreenButtonSection(
     currentTimeMs: () -> Long,
     totalDurationMs: () -> Long,
     isFullScreen: Boolean,
