@@ -33,6 +33,7 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import ru.ilyasekunov.videoplayerexample.ui.conditional
 import ru.ilyasekunov.videoplayerexample.util.hideSystemUi
+import ru.ilyasekunov.videoplayerexample.util.openSystemUi
 import ru.ilyasekunov.videoplayerexample.util.setLandscape
 import ru.ilyasekunov.videoplayerexample.util.setPortrait
 
@@ -170,6 +171,8 @@ private fun VideoPlayerWithControls(
         BackHandler {
             setPortrait(context)
         }
+    } else {
+        openSystemUi(context as Activity)
     }
 
     Box(modifier = modifier) {
@@ -238,16 +241,15 @@ fun VideoPlayer(
     player: Player,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
-        AndroidView(
-            factory = {
-                PlayerView(it).apply {
-                    this.player = player
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    useController = false
-                    clipToOutline = true
-                }
+    AndroidView(
+        factory = {
+            PlayerView(it).apply {
+                this.player = player
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                useController = false
+                clipToOutline = true
             }
-        )
-    }
+        },
+        modifier = modifier
+    )
 }

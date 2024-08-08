@@ -76,15 +76,13 @@ internal fun VideoPlayerSettings(
             windowInsets = WindowInsets.safeContent,
             modifier = modifier
         ) {
-            Column {
-                PlaybackSpeedSelector(
-                    currentSpeed = videoControlsState.speed,
-                    onClick = {
-                        currentSettingSelected = AvailableSettings.PlaybackSpeed
-                    },
-                    modifier = Modifier.testTag("PlaybackSpeedSelector")
-                )
-            }
+            PlaybackSpeedSelector(
+                currentSpeed = videoControlsState.speed,
+                onClick = {
+                    currentSettingSelected = AvailableSettings.PlaybackSpeed
+                },
+                modifier = Modifier.testTag("PlaybackSpeedSelector")
+            )
         }
     }
 

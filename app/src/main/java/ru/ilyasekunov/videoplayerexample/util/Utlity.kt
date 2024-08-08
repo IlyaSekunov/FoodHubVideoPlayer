@@ -74,3 +74,10 @@ fun hideSystemUi(activity: Activity) {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 }
+
+fun openSystemUi(activity: Activity) {
+    with(activity) {
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+    }
+}

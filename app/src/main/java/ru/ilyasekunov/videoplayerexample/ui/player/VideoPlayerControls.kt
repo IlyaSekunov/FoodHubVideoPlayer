@@ -291,7 +291,7 @@ internal fun VideoPlayerControls(
             )
     ) {
         var isUserEditingCurrentTime by rememberSaveable { mutableStateOf(false) }
-        var isVideoPlayerSettingsVisible by rememberSaveable { mutableStateOf(false) }
+        var isVideoPlayerSettingsVisible by remember { mutableStateOf(false) }
 
         CurrentSpeedHeader(
             visible = videoSpeedAcceleratingUiState.isActive,
@@ -510,6 +510,7 @@ private fun VideoPlayerControlsHeader(
                 modifier = Modifier
                     .testTag("VideoPlayerSettingButton")
                     .align(Alignment.TopEnd)
+                    .padding(end = 10.dp)
             )
         }
     }
