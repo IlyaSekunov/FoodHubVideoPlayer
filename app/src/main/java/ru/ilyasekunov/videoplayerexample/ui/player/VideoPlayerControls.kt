@@ -393,15 +393,15 @@ private fun CurrentSpeedHeader(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(Color.Black.copy(alpha = 0.5f))
-                .padding(4.dp)
+                .padding(horizontal = 8.dp)
         ) {
             Text(
                 text = "${currentSpeed}x",
                 fontSize = 12.sp,
                 color = Color.White,
-                modifier = Modifier.padding(end = 6.dp)
+                modifier = Modifier.padding(end = 4.dp)
             )
             Icon(
                 painter = painterResource(R.drawable.baseline_play_arrow_24),
