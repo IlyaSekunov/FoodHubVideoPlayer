@@ -14,7 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 import ru.ilyasekunov.videoplayerexample.ui.player.FoodHubVideoPlayer
 import ru.ilyasekunov.videoplayerexample.ui.player.PLAYER_CONTROLS_VISIBILITY_TIME
-import ru.ilyasekunov.videoplayerexample.ui.player.Video
+import ru.ilyasekunov.videoplayerexample.ui.player.VideoUiState
 import ru.ilyasekunov.videoplayerexample.util.setLandscape
 
 class FoodHubVideoPlayerTest {
@@ -22,18 +22,18 @@ class FoodHubVideoPlayerTest {
     val activityRule = createAndroidComposeRule<MainActivity>()
 
     private val video = listOf(
-        Video(
+        VideoUiState(
             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
             title = "Some video"
         )
     )
 
     private val videos = listOf(
-        Video(
+        VideoUiState(
             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
             title = "Some video"
         ),
-        Video(
+        VideoUiState(
             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
             title = "Some video"
         )
@@ -63,18 +63,11 @@ class FoodHubVideoPlayerTest {
             )
         }
 
-        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
-
-        activityRule.mainClock.autoAdvance = false
-        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME / 2)
+        openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
-
-        activityRule.onNodeWithTag("VideoPlayerPreviousButton").assertIsNotDisplayed()
-
-        activityRule.onNodeWithTag("VideoPlayerNextButton").assertIsNotDisplayed()
-
-        activityRule.onNodeWithTag("VideoPlayerNavigateBackButton").assertIsNotDisplayed()
+        assertMultipleVideosControlsAreNotShown()
+        assertLandscapeControlsAreNotShown()
     }
 
     @Test
@@ -89,20 +82,11 @@ class FoodHubVideoPlayerTest {
             )
         }
 
-        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
-
-        activityRule.mainClock.autoAdvance = false
-        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME / 2)
+        openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
-
-        activityRule.onNodeWithTag("VideoPlayerPreviousButton").assertIsNotDisplayed()
-
-        activityRule.onNodeWithTag("VideoPlayerNextButton").assertIsNotDisplayed()
-
-        activityRule.onNodeWithTag("VideoPlayerNavigateBackButton")
-            .assertIsDisplayed()
-            .assertIsEnabled()
+        assertMultipleVideosControlsAreNotShown()
+        assertLandscapeControlsAreShown()
     }
 
     @Test
@@ -115,22 +99,11 @@ class FoodHubVideoPlayerTest {
             )
         }
 
-        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
-
-        activityRule.mainClock.autoAdvance = false
-        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME / 2)
+        openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
-
-        activityRule.onNodeWithTag("VideoPlayerPreviousButton")
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
-
-        activityRule.onNodeWithTag("VideoPlayerNextButton")
-            .assertIsDisplayed()
-            .assertIsEnabled()
-
-        activityRule.onNodeWithTag("VideoPlayerNavigateBackButton").assertIsNotDisplayed()
+        assertMultipleVideosControlsAreShown()
+        assertLandscapeControlsAreNotShown()
     }
 
     @Test
@@ -145,24 +118,11 @@ class FoodHubVideoPlayerTest {
             )
         }
 
-        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
-
-        activityRule.mainClock.autoAdvance = false
-        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME / 2)
+        openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
-
-        activityRule.onNodeWithTag("VideoPlayerPreviousButton")
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
-
-        activityRule.onNodeWithTag("VideoPlayerNextButton")
-            .assertIsDisplayed()
-            .assertIsEnabled()
-
-        activityRule.onNodeWithTag("VideoPlayerNavigateBackButton")
-            .assertIsDisplayed()
-            .assertIsEnabled()
+        assertMultipleVideosControlsAreShown()
+        assertLandscapeControlsAreShown()
     }
 
     @Test
@@ -175,13 +135,10 @@ class FoodHubVideoPlayerTest {
             )
         }
 
-        activityRule.mainClock.autoAdvance = false
+        openVideoControls()
 
         activityRule.onNodeWithTag("VideoPlayerControls").performClick()
-
-        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME / 2)
-
-        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
+        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME)
 
         assertDefaultVideoPlayerControlsAreNotShown()
     }
@@ -196,11 +153,56 @@ class FoodHubVideoPlayerTest {
             )
         }
 
-        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
+        openVideoControls()
 
-        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME * 2)
+        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME)
 
         assertDefaultVideoPlayerControlsAreNotShown()
+    }
+
+    @Test
+    fun whenUserClicksOnSettingsButton_settingAreShown() {
+        activityRule.activity.setContent {
+            FoodHubVideoPlayer(
+                videos = videos,
+                initiallyStartPlaying = false,
+                autoRepeat = false
+            )
+        }
+
+        openVideoControls()
+        openSettings()
+
+        activityRule.onNodeWithTag("VideoPlayerSettings")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun whenUserClicksOnPlaybackSpeedSetting_availableSettingsValueAreShown() {
+        activityRule.activity.setContent {
+            FoodHubVideoPlayer(
+                videos = videos,
+                initiallyStartPlaying = false,
+                autoRepeat = false
+            )
+        }
+
+        openVideoControls()
+        openSettings()
+
+        activityRule.onNodeWithTag("PlaybackSpeedSelector").performClick()
+
+        activityRule.onNodeWithTag("AvailablePlaybackSpeedValues")
+            .assertIsDisplayed()
+    }
+
+    private fun openVideoControls() {
+        activityRule.onNodeWithTag("VideoPlayerControls").performClick()
+        activityRule.mainClock.advanceTimeBy(PLAYER_CONTROLS_VISIBILITY_TIME / 2)
+    }
+
+    private fun openSettings() {
+        activityRule.onNodeWithTag("VideoPlayerSettingButton").performClick()
     }
 
     private fun assertDefaultVideoPlayerControlsAreShown() {
@@ -219,6 +221,10 @@ class FoodHubVideoPlayerTest {
                     (!playButtonDisplayed && !pauseButtonDisplayed && loadingIndicatorDisplayed)
         )
 
+        activityRule.onNodeWithTag("VideoPlayerSettingButton")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+
         activityRule.onNodeWithTag("VideoPlayerTimeAndBufferingView")
             .assertIsDisplayed()
 
@@ -231,11 +237,14 @@ class FoodHubVideoPlayerTest {
     }
 
     private fun assertDefaultVideoPlayerControlsAreNotShown() {
-        activityRule.onNodeWithTag("VideoPlayerVideoTitle").assertIsNotDisplayed()
+        activityRule.onNodeWithTag("VideoPlayerVideoTitle")
+            .assertIsNotDisplayed()
 
-        activityRule.onNodeWithTag("VideoPlayerPlayButton").assertIsNotDisplayed()
+        activityRule.onNodeWithTag("VideoPlayerPlayButton")
+            .assertIsNotDisplayed()
 
-        activityRule.onNodeWithTag("VideoPlayerPauseButton").assertIsNotDisplayed()
+        activityRule.onNodeWithTag("VideoPlayerPauseButton")
+            .assertIsNotDisplayed()
 
         activityRule.onNodeWithTag("VideoPlayerTimeAndBufferingView")
             .assertIsNotDisplayed()
@@ -252,6 +261,38 @@ class FoodHubVideoPlayerTest {
         activityRule.onNodeWithTag("VideoPlayerNextButton")
             .assertIsNotDisplayed()
 
+        activityRule.onNodeWithTag("VideoPlayerNavigateBackButton")
+            .assertIsNotDisplayed()
+
+        activityRule.onNodeWithTag("VideoPlayerSettingButton")
+            .assertIsNotDisplayed()
+    }
+
+    private fun assertMultipleVideosControlsAreShown() {
+        activityRule.onNodeWithTag("VideoPlayerPreviousButton")
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+
+        activityRule.onNodeWithTag("VideoPlayerNextButton")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    private fun assertMultipleVideosControlsAreNotShown() {
+        activityRule.onNodeWithTag("VideoPlayerPreviousButton")
+            .assertIsNotDisplayed()
+
+        activityRule.onNodeWithTag("VideoPlayerNextButton")
+            .assertIsNotDisplayed()
+    }
+
+    private fun assertLandscapeControlsAreShown() {
+        activityRule.onNodeWithTag("VideoPlayerNavigateBackButton")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    private fun assertLandscapeControlsAreNotShown() {
         activityRule.onNodeWithTag("VideoPlayerNavigateBackButton")
             .assertIsNotDisplayed()
     }

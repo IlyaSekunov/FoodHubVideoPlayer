@@ -57,6 +57,7 @@ private fun videoPlayerStateListener(videoControlsState: VideoControlsState): Pl
                 bufferedPercentage = player.bufferedPercentage
                 title = player.currentMediaItem?.mediaMetadata?.displayTitle.toString()
                 currentMediaItemIndex = player.currentMediaItemIndex
+                speed = player.playbackParameters.speed
             }
         }
     }
@@ -69,10 +70,10 @@ private fun videoPlayerLifecycleObserver(
         super.onStart(owner)
 
         // Restore state
-        videoPlayer.seekTo(
-            videoControlsState.currentMediaItemIndex,
-            videoControlsState.currentTimeMs
-        )
+        with(videoPlayer) {
+            seekTo(videoControlsState.currentMediaItemIndex, videoControlsState.currentTimeMs)
+            setPlaybackSpeed(videoControlsState.speed)
+        }
 
         videoPlayer.prepare()
         if (!videoControlsState.isPaused) {
@@ -89,7 +90,7 @@ private fun videoPlayerLifecycleObserver(
 @OptIn(UnstableApi::class)
 @Composable
 fun FoodHubVideoPlayer(
-    videos: List<Video>,
+    videos: List<VideoUiState>,
     initiallyStartPlaying: Boolean,
     autoRepeat: Boolean,
     modifier: Modifier = Modifier
@@ -186,7 +187,7 @@ private fun VideoPlayerWithControls(
                 while (true) {
                     videoControlsState.currentTimeMs = player.contentPosition
                         .coerceAtLeast(0)
-                    delay(400)
+                    delay(200)
                 }
             }
         }
@@ -215,6 +216,7 @@ private fun VideoPlayerWithControls(
                 player.seekTo(it.toLong())
                 isUserInteractingWithPlayer = false
             },
+            onVideoPlaybackSpeedSelected = player::setPlaybackSpeed,
             isFullScreen = isFullScreen,
             onFullScreenClick = onFullScreenClick,
             navigateBack = {

@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">VideoPlayerExample</string>
     <string name="video_player_seek_seconds">секунд</string>
+    <string name="video_player_playback_speed_description">Скорость воспроизведения</string>
+    <string name="video_player_default_speed_name">Обычная</string>
+    <string name="video_player_quality_description">Качество</string>
 </resources>

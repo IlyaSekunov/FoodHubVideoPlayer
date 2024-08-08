@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import ru.ilyasekunov.videoplayerexample.ui.player.FoodHubVideoPlayer
-import ru.ilyasekunov.videoplayerexample.ui.player.Video
+import ru.ilyasekunov.videoplayerexample.ui.player.VideoUiState
 import ru.ilyasekunov.videoplayerexample.ui.theme.VideoPlayerExampleTheme
 
 class MainActivity : ComponentActivity() {
@@ -25,11 +25,11 @@ class MainActivity : ComponentActivity() {
             VideoPlayerExampleTheme(dynamicColor = false) {
                 FoodHubVideoPlayer(
                     videos = listOf(
-                        Video(
+                        VideoUiState(
                             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
                             title = "Some video"
                         ),
-                        Video(
+                        VideoUiState(
                             url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
                             title = "Some video"
                         )

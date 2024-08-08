@@ -36,8 +36,10 @@ import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -66,15 +68,22 @@ import ru.ilyasekunov.videoplayerexample.R
 import ru.ilyasekunov.videoplayerexample.ui.ifTrue
 import java.util.Locale
 
-data class Video(
+@Immutable
+data class VideoUiState(
     val url: String,
     val title: String
 )
 
-internal fun List<Video>.toMediaItems(): List<MediaItem> =
+@Immutable
+data class SeekAnimationUiState(
+    val isPlaying: Boolean,
+    val isForward: Boolean,
+)
+
+internal fun List<VideoUiState>.toMediaItems(): List<MediaItem> =
     map { it.toMediaItem() }
 
-internal fun Video.toMediaItem(): MediaItem =
+internal fun VideoUiState.toMediaItem(): MediaItem =
     MediaItem.Builder()
         .setUri(url)
         .setMediaMetadata(
@@ -99,6 +108,7 @@ internal class VideoControlsState(
     hasPreviousMediaItem: Boolean = false,
     hasNextMediaItem: Boolean = false,
     currentMediaItemIndex: Int = 0,
+    speed: Float = DefaultSpeed,
 ) {
     var visible by mutableStateOf(visible)
     var isPlaying by mutableStateOf(isPlaying)
@@ -113,6 +123,7 @@ internal class VideoControlsState(
     var hasPreviousMediaItem by mutableStateOf(hasPreviousMediaItem)
     var hasNextMediaItem by mutableStateOf(hasNextMediaItem)
     var currentMediaItemIndex by mutableIntStateOf(currentMediaItemIndex)
+    var speed by mutableFloatStateOf(speed)
 
     companion object {
         val Saver = mapSaver(
@@ -130,7 +141,8 @@ internal class VideoControlsState(
                     "bufferedPercentage" to it.bufferedPercentage,
                     "hasPreviousMediaItem" to it.hasPreviousMediaItem,
                     "hasNextMediaItem" to it.hasNextMediaItem,
-                    "currentMediaItemIndex" to it.currentMediaItemIndex
+                    "currentMediaItemIndex" to it.currentMediaItemIndex,
+                    "speed" to it.speed,
                 )
             },
             restore = {
@@ -147,7 +159,8 @@ internal class VideoControlsState(
                     bufferedPercentage = (it["bufferedPercentage"] as Int),
                     hasPreviousMediaItem = (it["hasPreviousMediaItem"] as Boolean),
                     hasNextMediaItem = (it["hasNextMediaItem"] as Boolean),
-                    currentMediaItemIndex = (it["currentMediaItemIndex"] as Int)
+                    currentMediaItemIndex = (it["currentMediaItemIndex"] as Int),
+                    speed = (it["speed"] as Float),
                 )
             }
         )
@@ -172,6 +185,12 @@ internal fun rememberVideoControlsState(player: Player) =
     }
 
 @Composable
+internal fun rememberSeekAnimationUiState(
+    isPlaying: Boolean = false,
+    isForward: Boolean = false,
+) = remember { mutableStateOf(SeekAnimationUiState(isPlaying, isForward)) }
+
+@Composable
 internal fun VideoPlayerControls(
     videoControlsState: VideoControlsState,
     onClick: () -> Unit,
@@ -184,15 +203,16 @@ internal fun VideoPlayerControls(
     onReplayClick: () -> Unit,
     onStartedTimeChanging: () -> Unit,
     onFinishTimeChanging: (Float) -> Unit,
+    onVideoPlaybackSpeedSelected: (Float) -> Unit,
     isFullScreen: Boolean,
     onFullScreenClick: () -> Unit,
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var shouldShowSeekForwardAnimation by remember { mutableStateOf<Boolean?>(null) }
+    var seekAnimationUiState by rememberSeekAnimationUiState()
 
     BlackoutBackground(
-        visible = videoControlsState.visible || shouldShowSeekForwardAnimation != null,
+        visible = videoControlsState.visible || seekAnimationUiState.isPlaying,
         modifier = Modifier
             .testTag("BlackoutBackground")
             .fillMaxSize()
@@ -200,27 +220,34 @@ internal fun VideoPlayerControls(
 
     Box(
         modifier = modifier
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onDoubleTap = { offset ->
-                        if (offset.x > size.width / 2) {
-                            onSeekForward()
-                            shouldShowSeekForwardAnimation = true
-                        } else {
-                            onSeekBack()
-                            shouldShowSeekForwardAnimation = false
-                        }
-                    }
-                )
-            }
+            .observeVideoPlayerTapGestures(
+                onClick = onClick,
+                onDoubleClickOnRightSide = {
+                    onSeekForward()
+                    seekAnimationUiState = seekAnimationUiState.copy(
+                        isPlaying = true,
+                        isForward = true
+                    )
+                },
+                onDoubleClickOnLeftSide = {
+                    onSeekBack()
+                    seekAnimationUiState = seekAnimationUiState.copy(
+                        isPlaying = true,
+                        isForward = false
+                    )
+                }
+            )
     ) {
         var isUserEditingCurrentTime by rememberSaveable { mutableStateOf(false) }
+        var isVideoPlayerSettingsVisible by rememberSaveable { mutableStateOf(false) }
 
         VideoPlayerControlsHeader(
             visible = videoControlsState.visible,
             title = videoControlsState.title,
             isFullScreen = isFullScreen,
+            onSettingsClick = {
+                isVideoPlayerSettingsVisible = true
+            },
             navigateBack = navigateBack,
             modifier = Modifier
                 .fillMaxWidth()
@@ -267,30 +294,63 @@ internal fun VideoPlayerControls(
                 .align(Alignment.BottomCenter)
         )
 
-        val screenWidth = LocalConfiguration.current.screenWidthDp
-        val seekAnimationOffset = screenWidth / 4
-        shouldShowSeekForwardAnimation?.let { isForward ->
-            val shouldShowControlsAfterAnimation = videoControlsState.visible
-            videoControlsState.visible = false
+        VideoPlayerControlsSeekAnimation(
+            seekAnimationUiState = seekAnimationUiState,
+            videoControlsState = videoControlsState,
+            onFinish = { seekAnimationUiState = seekAnimationUiState.copy(isPlaying = false) },
+            modifier = Modifier
+                .testTag("VideoPlayerSeekAnimation")
+                .align(Alignment.Center)
+        )
 
-            SeekAnimation(
-                isForward = isForward,
-                onFinish = {
-                    shouldShowSeekForwardAnimation = null
-                    videoControlsState.visible = shouldShowControlsAfterAnimation
-                },
-                modifier = Modifier
-                    .testTag("SeekAnimation")
-                    .align(Alignment.Center)
-                    .offset(
-                        x = if (isForward) {
-                            seekAnimationOffset.dp
-                        } else {
-                            (-seekAnimationOffset).dp
-                        }
-                    )
+        VideoPlayerSettings(
+            videoControlsState = videoControlsState,
+            visible = isVideoPlayerSettingsVisible,
+            onDismiss = { isVideoPlayerSettingsVisible = false },
+            onVideoSpeedSelected = {
+                isVideoPlayerSettingsVisible = false
+                onVideoPlaybackSpeedSelected(it)
+            },
+            modifier = Modifier
+                .testTag("VideoPlayerSettings")
+                .offset(y = (-20).dp)
+        )
+    }
+}
+
+@Composable
+private fun VideoPlayerControlsSeekAnimation(
+    seekAnimationUiState: SeekAnimationUiState,
+    videoControlsState: VideoControlsState,
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val seekAnimationOffset = screenWidth / 4
+
+    AnimatedVisibility(
+        visible = seekAnimationUiState.isPlaying,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+            .offset(
+                x = if (seekAnimationUiState.isForward) {
+                    seekAnimationOffset.dp
+                } else {
+                    (-seekAnimationOffset).dp
+                }
             )
-        }
+    ) {
+        val shouldShowControlsAfterAnimation = videoControlsState.visible
+        videoControlsState.visible = false
+
+        SeekAnimation(
+            isForward = seekAnimationUiState.isForward,
+            onFinish = {
+                onFinish()
+                videoControlsState.visible = shouldShowControlsAfterAnimation
+            }
+        )
     }
 }
 
@@ -320,6 +380,7 @@ private fun VideoPlayerControlsHeader(
     visible: Boolean,
     title: String,
     isFullScreen: Boolean,
+    onSettingsClick: () -> Unit,
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -342,6 +403,12 @@ private fun VideoPlayerControlsHeader(
                 modifier = Modifier
                     .testTag("VideoPlayerVideoTitle")
                     .align(Alignment.Center)
+            )
+            SettingsButton(
+                onClick = onSettingsClick,
+                modifier = Modifier
+                    .testTag("VideoPlayerSettingButton")
+                    .align(Alignment.TopEnd)
             )
         }
     }
@@ -763,6 +830,22 @@ private fun FullScreenButton(
 }
 
 @Composable
+private fun SettingsButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ControlButton(
+        iconSize = 22.dp,
+        enabled = true,
+        withBackground = false,
+        padding = 14.dp,
+        onClick = onClick,
+        drawableId = R.drawable.outline_settings_24,
+        modifier = modifier
+    )
+}
+
+@Composable
 private fun NavigateBackArrow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -775,6 +858,23 @@ private fun NavigateBackArrow(
         onClick = onClick,
         drawableId = R.drawable.baseline_arrow_back_24,
         modifier = modifier
+    )
+}
+
+private fun Modifier.observeVideoPlayerTapGestures(
+    onClick: () -> Unit,
+    onDoubleClickOnRightSide: () -> Unit,
+    onDoubleClickOnLeftSide: () -> Unit,
+): Modifier = this.pointerInput(Unit) {
+    detectTapGestures(
+        onTap = { onClick() },
+        onDoubleTap = { offset ->
+            if (offset.x > size.width / 2) {
+                onDoubleClickOnRightSide()
+            } else {
+                onDoubleClickOnLeftSide()
+            }
+        }
     )
 }
 
