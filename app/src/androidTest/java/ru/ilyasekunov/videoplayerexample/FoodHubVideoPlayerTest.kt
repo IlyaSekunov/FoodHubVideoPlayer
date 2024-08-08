@@ -7,8 +7,10 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -193,6 +195,27 @@ class FoodHubVideoPlayerTest {
         activityRule.onNodeWithTag("PlaybackSpeedSelector").performClick()
 
         activityRule.onNodeWithTag("AvailablePlaybackSpeedValues")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun whenUserDragsAfterLongPress_videoPlayerSpeedAcceleratingIsShown() {
+        activityRule.activity.setContent {
+            FoodHubVideoPlayer(
+                videos = videos,
+                initiallyStartPlaying = false,
+                autoRepeat = false
+            )
+        }
+
+        activityRule.onNodeWithTag("VideoPlayerControls")
+            .performTouchInput {
+                longClick(durationMillis = 2000)
+            }
+
+        activityRule.mainClock.autoAdvance = false
+
+        activityRule.onNodeWithTag("VideoPlayerCurrentSpeedHeader")
             .assertIsDisplayed()
     }
 

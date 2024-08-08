@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -66,19 +68,48 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import ru.ilyasekunov.videoplayerexample.R
 import ru.ilyasekunov.videoplayerexample.ui.ifTrue
+import ru.ilyasekunov.videoplayerexample.util.vibrate
 import java.util.Locale
 
 @Immutable
-data class VideoUiState(
+class VideoUiState(
     val url: String,
     val title: String
 )
 
 @Immutable
-data class SeekAnimationUiState(
+private data class SeekAnimationUiState(
     val isPlaying: Boolean,
     val isForward: Boolean,
 )
+
+@Composable
+private fun rememberSeekAnimationUiState(
+    isPlaying: Boolean = false,
+    isForward: Boolean = false,
+) = remember { mutableStateOf(SeekAnimationUiState(isPlaying, isForward)) }
+
+@Immutable
+private data class VideoSpeedAcceleratingUiState(
+    val isActive: Boolean,
+    val videoSpeedBeforeAccelerating: Float,
+    val shouldOpenControlsAfterFinishing: Boolean,
+)
+
+@Composable
+private fun rememberVideoSpeedAcceleratingUiState(
+    isActive: Boolean = false,
+    videoSpeedBeforeAccelerating: Float,
+    shouldOpenControlsAfterFinishing: Boolean,
+) = remember {
+    mutableStateOf(
+        VideoSpeedAcceleratingUiState(
+            isActive = isActive,
+            videoSpeedBeforeAccelerating = videoSpeedBeforeAccelerating,
+            shouldOpenControlsAfterFinishing = shouldOpenControlsAfterFinishing
+        )
+    )
+}
 
 internal fun List<VideoUiState>.toMediaItems(): List<MediaItem> =
     map { it.toMediaItem() }
@@ -185,12 +216,6 @@ internal fun rememberVideoControlsState(player: Player) =
     }
 
 @Composable
-internal fun rememberSeekAnimationUiState(
-    isPlaying: Boolean = false,
-    isForward: Boolean = false,
-) = remember { mutableStateOf(SeekAnimationUiState(isPlaying, isForward)) }
-
-@Composable
 internal fun VideoPlayerControls(
     videoControlsState: VideoControlsState,
     onClick: () -> Unit,
@@ -209,7 +234,12 @@ internal fun VideoPlayerControls(
     navigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var seekAnimationUiState by rememberSeekAnimationUiState()
+    var videoSpeedAcceleratingUiState by rememberVideoSpeedAcceleratingUiState(
+        videoSpeedBeforeAccelerating = videoControlsState.speed,
+        shouldOpenControlsAfterFinishing = videoControlsState.visible
+    )
 
     BlackoutBackground(
         visible = videoControlsState.visible || seekAnimationUiState.isPlaying,
@@ -235,11 +265,41 @@ internal fun VideoPlayerControls(
                         isPlaying = true,
                         isForward = false
                     )
+                },
+            )
+            .observeVideoPlayerDragGestures(
+                onLongPressStart = {
+                    videoSpeedAcceleratingUiState = videoSpeedAcceleratingUiState.copy(
+                        isActive = true,
+                        shouldOpenControlsAfterFinishing = videoControlsState.visible
+                    )
+                    videoControlsState.visible = false
+                    vibrate(context)
+                    onVideoPlaybackSpeedSelected(MaxSpeed)
+                },
+                onLongPressFinish = {
+                    videoSpeedAcceleratingUiState = videoSpeedAcceleratingUiState.copy(
+                        isActive = false
+                    )
+                    videoControlsState.visible =
+                        videoSpeedAcceleratingUiState.shouldOpenControlsAfterFinishing
+
+                    onVideoPlaybackSpeedSelected(
+                        videoSpeedAcceleratingUiState.videoSpeedBeforeAccelerating
+                    )
                 }
             )
     ) {
         var isUserEditingCurrentTime by rememberSaveable { mutableStateOf(false) }
         var isVideoPlayerSettingsVisible by rememberSaveable { mutableStateOf(false) }
+
+        CurrentSpeedHeader(
+            visible = videoSpeedAcceleratingUiState.isActive,
+            modifier = Modifier
+                .testTag("VideoPlayerCurrentSpeedHeader")
+                .align(Alignment.TopCenter)
+                .padding(top = 20.dp)
+        )
 
         VideoPlayerControlsHeader(
             visible = videoControlsState.visible,
@@ -315,6 +375,47 @@ internal fun VideoPlayerControls(
                 .testTag("VideoPlayerSettings")
                 .offset(y = (-20).dp)
         )
+    }
+}
+
+@Composable
+private fun CurrentSpeedHeader(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    currentSpeed: Float = MaxSpeed,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(4.dp)
+        ) {
+            Text(
+                text = "${currentSpeed}x",
+                fontSize = 12.sp,
+                color = Color.White,
+                modifier = Modifier.padding(end = 6.dp)
+            )
+            Icon(
+                painter = painterResource(R.drawable.baseline_play_arrow_24),
+                tint = Color.White,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp)
+            )
+            Icon(
+                painter = painterResource(R.drawable.baseline_play_arrow_24),
+                tint = Color.White,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp)
+            )
+        }
     }
 }
 
@@ -858,6 +959,18 @@ private fun NavigateBackArrow(
         onClick = onClick,
         drawableId = R.drawable.baseline_arrow_back_24,
         modifier = modifier
+    )
+}
+
+private fun Modifier.observeVideoPlayerDragGestures(
+    onLongPressStart: () -> Unit,
+    onLongPressFinish: () -> Unit,
+): Modifier = this.pointerInput(Unit) {
+    detectDragGesturesAfterLongPress(
+        onDragStart = { onLongPressStart() },
+        onDragEnd = { onLongPressFinish() },
+        onDragCancel = { onLongPressFinish() },
+        onDrag = { _, _ -> }
     )
 }
 

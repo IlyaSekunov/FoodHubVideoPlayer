@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import ru.ilyasekunov.videoplayerexample.R
 
 internal const val DefaultSpeed = 1f
+internal const val MaxSpeed = 2f
 
 internal val AvailablePlaybackSpeedValues = listOf(
     0.25f,
@@ -45,7 +46,7 @@ internal val AvailablePlaybackSpeedValues = listOf(
     1.25f,
     1.5f,
     1.75f,
-    2f,
+    MaxSpeed,
 )
 
 internal enum class AvailableSettings {
