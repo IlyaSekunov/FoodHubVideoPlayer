@@ -505,13 +505,15 @@ private fun VideoPlayerControlsHeader(
                     .testTag("VideoPlayerVideoTitle")
                     .align(Alignment.Center)
             )
-            SettingsButton(
-                onClick = onSettingsClick,
-                modifier = Modifier
-                    .testTag("VideoPlayerSettingButton")
-                    .align(Alignment.TopEnd)
-                    .padding(end = 10.dp)
-            )
+            if (!isFullScreen) {
+                SettingsButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier
+                        .testTag("VideoPlayerSettingButton")
+                        .align(Alignment.TopEnd)
+                        .padding(end = 10.dp)
+                )
+            }
         }
     }
 }

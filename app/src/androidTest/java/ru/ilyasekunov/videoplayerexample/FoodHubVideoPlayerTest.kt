@@ -68,6 +68,7 @@ class FoodHubVideoPlayerTest {
         openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
+        assertSettingsButtonIsVisibleAndEnabled()
         assertMultipleVideosControlsAreNotShown()
         assertLandscapeControlsAreNotShown()
     }
@@ -104,6 +105,7 @@ class FoodHubVideoPlayerTest {
         openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
+        assertSettingsButtonIsVisibleAndEnabled()
         assertMultipleVideosControlsAreShown()
         assertLandscapeControlsAreNotShown()
     }
@@ -228,6 +230,12 @@ class FoodHubVideoPlayerTest {
         activityRule.onNodeWithTag("VideoPlayerSettingButton").performClick()
     }
 
+    private fun assertSettingsButtonIsVisibleAndEnabled() {
+        activityRule.onNodeWithTag("VideoPlayerSettingButton")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
     private fun assertDefaultVideoPlayerControlsAreShown() {
         activityRule.onNodeWithTag("VideoPlayerVideoTitle").assertIsDisplayed()
 
@@ -243,10 +251,6 @@ class FoodHubVideoPlayerTest {
                     (!playButtonDisplayed && pauseButtonDisplayed && !loadingIndicatorDisplayed) ||
                     (!playButtonDisplayed && !pauseButtonDisplayed && loadingIndicatorDisplayed)
         )
-
-        activityRule.onNodeWithTag("VideoPlayerSettingButton")
-            .assertIsDisplayed()
-            .assertIsEnabled()
 
         activityRule.onNodeWithTag("VideoPlayerTimeAndBufferingView")
             .assertIsDisplayed()
