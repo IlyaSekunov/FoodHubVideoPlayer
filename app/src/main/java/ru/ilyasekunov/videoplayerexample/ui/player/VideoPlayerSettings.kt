@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -145,18 +146,12 @@ private fun AvailablePlaybackSpeedValues(
     Column(modifier = modifier) {
         AvailablePlaybackSpeedValues.forEach { speed ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onVideoSpeedSelected(speed) }
                     .padding(16.dp)
             ) {
-                if (speed == currentSpeedSelected) {
-                    Icon(
-                        painter = painterResource(R.drawable.baseline_check_24),
-                        contentDescription = "CheckIcon"
-                    )
-                }
                 Text(
                     text = if (speed == DefaultSpeed) {
                         stringResource(R.string.video_player_default_speed_name)
@@ -165,6 +160,13 @@ private fun AvailablePlaybackSpeedValues(
                     },
                     modifier = Modifier.padding(start = 14.dp)
                 )
+                if (speed == currentSpeedSelected) {
+                    Icon(
+                        painter = painterResource(R.drawable.baseline_check_24),
+                        tint = MaterialTheme.colorScheme.primary,
+                        contentDescription = "CheckIcon"
+                    )
+                }
             }
         }
     }
