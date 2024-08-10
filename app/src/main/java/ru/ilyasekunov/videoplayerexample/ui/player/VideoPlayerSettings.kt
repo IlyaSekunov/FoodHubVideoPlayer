@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,7 +74,7 @@ internal fun VideoPlayerSettings(
             containerColor = Color.White,
             shape = RoundedCornerShape(10.dp),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            windowInsets = WindowInsets.safeContent,
+            windowInsets = WindowInsets.navigationBars,
             modifier = modifier
         ) {
             PlaybackSpeedSelector(
@@ -97,7 +97,7 @@ internal fun VideoPlayerSettings(
             sheetMaxWidth = screenWidth.dp - edgePadding,
             shape = RoundedCornerShape(10.dp),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            windowInsets = WindowInsets.safeContent,
+            windowInsets = WindowInsets.navigationBars,
             modifier = modifier
         ) {
             when (currentSettingSelected) {

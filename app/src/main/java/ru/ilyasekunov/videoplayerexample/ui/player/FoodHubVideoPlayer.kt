@@ -52,7 +52,6 @@ private fun videoPlayerStateListener(videoControlsState: VideoControlsState): Pl
                 isEnded = playbackState == Player.STATE_ENDED
                 hasPreviousMediaItem = player.hasPreviousMediaItem()
                 hasNextMediaItem = player.hasNextMediaItem()
-                isPaused = !isPlaying && !isLoading && !isEnded
                 totalDurationMs = player.contentDuration.coerceAtLeast(0)
                 currentTimeMs = player.contentPosition.coerceAtLeast(0)
                 bufferedPercentage = player.bufferedPercentage
@@ -207,8 +206,14 @@ private fun VideoPlayerWithControls(
             onClick = { videoControlsState.visible = !videoControlsState.visible },
             onSeekForward = player::seekForward,
             onSeekBack = player::seekBack,
-            onPlayClick = player::play,
-            onPauseClick = player::pause,
+            onPlayClick = {
+                player.play()
+                videoControlsState.isPaused = false
+            },
+            onPauseClick = {
+                player.pause()
+                videoControlsState.isPaused = true
+            },
             onPreviousClick = player::seekToPrevious,
             onNextClick = player::seekToNext,
             onReplayClick = { player.seekTo(0) },
