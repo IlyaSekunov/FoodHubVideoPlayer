@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample.ui.player
+package ru.ilyasekunov.foodhubvideoplayer.ui.player
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.IntRange
@@ -66,9 +66,9 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
-import ru.ilyasekunov.videoplayerexample.R
-import ru.ilyasekunov.videoplayerexample.ui.ifTrue
-import ru.ilyasekunov.videoplayerexample.util.vibrate
+import ru.ilyasekunov.foodhubvideoplayer.R
+import ru.ilyasekunov.foodhubvideoplayer.ui.ifTrue
+import ru.ilyasekunov.foodhubvideoplayer.util.vibrate
 import java.util.Locale
 
 @Immutable
@@ -76,18 +76,6 @@ class VideoUiState(
     val url: String,
     val title: String
 )
-
-@Immutable
-private data class SeekAnimationUiState(
-    val isPlaying: Boolean,
-    val isForward: Boolean,
-)
-
-@Composable
-private fun rememberSeekAnimationUiState(
-    isPlaying: Boolean = false,
-    isForward: Boolean = false,
-) = remember { mutableStateOf(SeekAnimationUiState(isPlaying, isForward)) }
 
 @Immutable
 private data class VideoSpeedAcceleratingUiState(
@@ -305,21 +293,21 @@ internal fun VideoPlayerControls(
                 .padding(top = 20.dp)
         )
 
-        VideoPlayerControlsHeader(
-            visible = videoControlsState.visible,
-            title = videoControlsState.title,
-            isFullScreen = isFullScreen,
-            onSettingsClick = {
-                isVideoPlayerSettingsVisible = true
-            },
-            navigateBack = navigateBack,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp)
-                .align(Alignment.TopCenter)
-        )
-
         if (!isUserEditingCurrentTime) {
+            VideoPlayerControlsHeader(
+                visible = videoControlsState.visible,
+                title = videoControlsState.title,
+                isFullScreen = isFullScreen,
+                onSettingsClick = {
+                    isVideoPlayerSettingsVisible = true
+                },
+                navigateBack = navigateBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .align(Alignment.TopCenter)
+            )
+
             VideoPlayerControlsMiddle(
                 visible = videoControlsState.visible,
                 isPlaying = videoControlsState.isPlaying,
@@ -432,11 +420,18 @@ private fun VideoPlayerControlsSeekAnimation(
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val seekAnimationOffset = screenWidth / 4
+    var shouldShowControlsAfterAnimation = remember { videoControlsState.visible }
 
-    AnimatedVisibility(
-        visible = seekAnimationUiState.isPlaying,
-        enter = fadeIn(),
-        exit = fadeOut(),
+    SeekAnimation(
+        seekAnimationUiState = seekAnimationUiState,
+        onStart = {
+            shouldShowControlsAfterAnimation = videoControlsState.visible
+            videoControlsState.visible = false
+        },
+        onFinish = {
+            onFinish()
+            videoControlsState.visible = shouldShowControlsAfterAnimation
+        },
         modifier = modifier
             .offset(
                 x = if (seekAnimationUiState.isForward) {
@@ -445,18 +440,7 @@ private fun VideoPlayerControlsSeekAnimation(
                     (-seekAnimationOffset).dp
                 }
             )
-    ) {
-        val shouldShowControlsAfterAnimation = videoControlsState.visible
-        videoControlsState.visible = false
-
-        SeekAnimation(
-            isForward = seekAnimationUiState.isForward,
-            onFinish = {
-                onFinish()
-                videoControlsState.visible = shouldShowControlsAfterAnimation
-            }
-        )
-    }
+    )
 }
 
 @Composable

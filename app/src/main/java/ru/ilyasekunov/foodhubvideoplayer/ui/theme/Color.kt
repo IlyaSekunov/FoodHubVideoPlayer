@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample.ui.theme
+package ru.ilyasekunov.foodhubvideoplayer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

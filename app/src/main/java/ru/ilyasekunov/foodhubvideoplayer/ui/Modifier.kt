@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample.ui
+package ru.ilyasekunov.foodhubvideoplayer.ui
 
 import androidx.compose.ui.Modifier
 

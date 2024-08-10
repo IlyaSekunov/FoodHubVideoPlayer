@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample.ui.theme
+package ru.ilyasekunov.foodhubvideoplayer.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

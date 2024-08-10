@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample
+package ru.ilyasekunov.foodhubvideoplayer
 
 import org.junit.Test
 

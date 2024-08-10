@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample.ui.player
+package ru.ilyasekunov.foodhubvideoplayer.ui.player
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -34,7 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.ilyasekunov.videoplayerexample.R
+import ru.ilyasekunov.foodhubvideoplayer.R
 
 internal const val DefaultSpeed = 1f
 internal const val MaxSpeed = 2f

@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample
+package ru.ilyasekunov.foodhubvideoplayer
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,9 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
-import ru.ilyasekunov.videoplayerexample.ui.player.FoodHubVideoPlayer
-import ru.ilyasekunov.videoplayerexample.ui.player.VideoUiState
-import ru.ilyasekunov.videoplayerexample.ui.theme.VideoPlayerExampleTheme
+import ru.ilyasekunov.foodhubvideoplayer.ui.player.FoodHubVideoPlayer
+import ru.ilyasekunov.foodhubvideoplayer.ui.player.VideoUiState
+import ru.ilyasekunov.foodhubvideoplayer.ui.theme.FoodHubVideoPlayerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            VideoPlayerExampleTheme(dynamicColor = false) {
+            FoodHubVideoPlayerTheme(dynamicColor = false) {
                 FoodHubVideoPlayer(
                     videos = listOf(
                         VideoUiState(

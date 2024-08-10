@@ -1,6 +1,7 @@
-package ru.ilyasekunov.videoplayerexample.ui.player
+package ru.ilyasekunov.foodhubvideoplayer.ui.player
 
 import android.app.Activity
+import android.content.Context
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
@@ -31,11 +32,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
-import ru.ilyasekunov.videoplayerexample.ui.conditional
-import ru.ilyasekunov.videoplayerexample.util.hideSystemUi
-import ru.ilyasekunov.videoplayerexample.util.openSystemUi
-import ru.ilyasekunov.videoplayerexample.util.setLandscape
-import ru.ilyasekunov.videoplayerexample.util.setPortrait
+import ru.ilyasekunov.foodhubvideoplayer.ui.conditional
+import ru.ilyasekunov.foodhubvideoplayer.util.hideSystemUi
+import ru.ilyasekunov.foodhubvideoplayer.util.openSystemUi
+import ru.ilyasekunov.foodhubvideoplayer.util.setLandscape
+import ru.ilyasekunov.foodhubvideoplayer.util.setPortrait
 
 internal const val PLAYER_SEEK_BACK_INCREMENT = 10 * 1000L // 10 seconds
 internal const val PLAYER_SEEK_FORWARD_INCREMENT = 10 * 1000L // 10 seconds
@@ -88,6 +89,23 @@ private fun videoPlayerLifecycleObserver(
 }
 
 @OptIn(UnstableApi::class)
+private fun buildExoPlayer(
+    context: Context,
+    videos: List<VideoUiState>,
+    initiallyStartPlaying: Boolean,
+    autoRepeat: Boolean,
+) = ExoPlayer.Builder(context)
+    .setSeekBackIncrementMs(PLAYER_SEEK_BACK_INCREMENT)
+    .setSeekForwardIncrementMs(PLAYER_SEEK_FORWARD_INCREMENT)
+    .build().apply {
+        setMediaItems(videos.toMediaItems())
+        playWhenReady = initiallyStartPlaying
+        repeatMode = if (autoRepeat) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
+
+        prepare()
+    }
+
+@OptIn(UnstableApi::class)
 @Composable
 fun FoodHubVideoPlayer(
     videos: List<VideoUiState>,
@@ -98,16 +116,12 @@ fun FoodHubVideoPlayer(
     val context = LocalContext.current
 
     val exoPlayer = remember {
-        ExoPlayer.Builder(context)
-            .setSeekBackIncrementMs(PLAYER_SEEK_BACK_INCREMENT)
-            .setSeekForwardIncrementMs(PLAYER_SEEK_FORWARD_INCREMENT)
-            .build().apply {
-                setMediaItems(videos.toMediaItems())
-                playWhenReady = initiallyStartPlaying
-                repeatMode = if (autoRepeat) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
-
-                prepare()
-            }
+        buildExoPlayer(
+            context = context,
+            videos = videos,
+            initiallyStartPlaying = initiallyStartPlaying,
+            autoRepeat = autoRepeat
+        )
     }
 
     val videoControlsState = rememberVideoControlsState(exoPlayer)
@@ -184,15 +198,10 @@ private fun VideoPlayerWithControls(
             }
         }
 
-        LaunchedEffect(videoControlsState.isPlaying) {
-            if (videoControlsState.isPlaying) {
-                while (true) {
-                    videoControlsState.currentTimeMs = player.contentPosition
-                        .coerceAtLeast(0)
-                    delay(200)
-                }
-            }
-        }
+        VideoPlayerCurrentTimeObserver(
+            player = player,
+            videoControlsState = videoControlsState
+        )
 
         VideoPlayer(
             player = player,
@@ -237,6 +246,22 @@ private fun VideoPlayerWithControls(
                 .fillMaxSize()
                 .displayCutoutPadding()
         )
+    }
+}
+
+@Composable
+private fun VideoPlayerCurrentTimeObserver(
+    player: Player,
+    videoControlsState: VideoControlsState,
+) {
+    LaunchedEffect(videoControlsState.isPlaying) {
+        if (videoControlsState.isPlaying) {
+            while (true) {
+                videoControlsState.currentTimeMs =
+                    player.contentPosition.coerceAtLeast(0)
+                delay(100)
+            }
+        }
     }
 }
 

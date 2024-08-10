@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample
+package ru.ilyasekunov.foodhubvideoplayer
 
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertIsDisplayed
@@ -14,10 +14,10 @@ import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import ru.ilyasekunov.videoplayerexample.ui.player.FoodHubVideoPlayer
-import ru.ilyasekunov.videoplayerexample.ui.player.PLAYER_CONTROLS_VISIBILITY_TIME
-import ru.ilyasekunov.videoplayerexample.ui.player.VideoUiState
-import ru.ilyasekunov.videoplayerexample.util.setLandscape
+import ru.ilyasekunov.foodhubvideoplayer.ui.player.FoodHubVideoPlayer
+import ru.ilyasekunov.foodhubvideoplayer.ui.player.PLAYER_CONTROLS_VISIBILITY_TIME
+import ru.ilyasekunov.foodhubvideoplayer.ui.player.VideoUiState
+import ru.ilyasekunov.foodhubvideoplayer.util.setLandscape
 
 class FoodHubVideoPlayerTest {
     @get:Rule

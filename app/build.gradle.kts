@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "ru.ilyasekunov.videoplayerexample"
+    namespace = "ru.ilyasekunov.foodhubvideoplayer"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "ru.ilyasekunov.videoplayerexample"
+        applicationId = "ru.ilyasekunov.foodhubvideoplayer"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

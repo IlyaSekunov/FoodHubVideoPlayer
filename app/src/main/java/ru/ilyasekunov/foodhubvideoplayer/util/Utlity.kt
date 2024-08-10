@@ -1,4 +1,4 @@
-package ru.ilyasekunov.videoplayerexample.util
+package ru.ilyasekunov.foodhubvideoplayer.util
 
 import android.annotation.SuppressLint
 import android.app.Activity

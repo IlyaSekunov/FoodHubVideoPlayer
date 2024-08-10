@@ -1,7 +1,10 @@
-package ru.ilyasekunov.videoplayerexample.ui.player
+package ru.ilyasekunov.foodhubvideoplayer.ui.player
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,23 +27,92 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import ru.ilyasekunov.videoplayerexample.R
+import ru.ilyasekunov.foodhubvideoplayer.R
+
+@Immutable
+internal data class SeekAnimationUiState(
+    val isPlaying: Boolean,
+    val isForward: Boolean,
+)
+
+@Composable
+internal fun rememberSeekAnimationUiState(
+    isPlaying: Boolean = false,
+    isForward: Boolean = false,
+) = remember { mutableStateOf(SeekAnimationUiState(isPlaying, isForward)) }
 
 @Composable
 internal fun SeekAnimation(
-    isForward: Boolean,
+    seekAnimationUiState: SeekAnimationUiState,
+    onStart: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isFirstTriangleVisible by remember {
-        mutableStateOf(false)
+    AnimatedVisibility(
+        visible = seekAnimationUiState.isPlaying,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
+        var isFirstTriangleVisible by remember { mutableStateOf(false) }
+        var isSecondTriangleVisible by remember { mutableStateOf(false) }
+        var isThirdTriangleVisible by remember { mutableStateOf(false) }
+
+        SeekAnimationContent(
+            isForward = seekAnimationUiState.isForward,
+            isFirstTriangleVisible = isFirstTriangleVisible,
+            isSecondTriangleVisible = isSecondTriangleVisible,
+            isThirdTriangleVisible = isThirdTriangleVisible,
+        )
+
+        LaunchedEffect(Unit) {
+            onStart()
+
+            if (seekAnimationUiState.isForward) {
+                isFirstTriangleVisible = true
+            } else {
+                isThirdTriangleVisible = true
+            }
+
+            delay(200L)
+
+            isSecondTriangleVisible = true
+
+            delay(200L)
+
+            if (seekAnimationUiState.isForward) {
+                isThirdTriangleVisible = true
+                isFirstTriangleVisible = false
+            } else {
+                isFirstTriangleVisible = true
+                isThirdTriangleVisible = false
+            }
+
+            delay(200L)
+
+            isSecondTriangleVisible = false
+
+            delay(200L)
+
+            if (seekAnimationUiState.isForward) {
+                isThirdTriangleVisible = false
+            } else {
+                isFirstTriangleVisible = false
+            }
+
+            onFinish()
+        }
     }
-    var isSecondTriangleVisible by remember {
-        mutableStateOf(false)
-    }
-    var isThirdTriangleVisible by remember {
-        mutableStateOf(false)
-    }
+}
+
+@Composable
+private fun SeekAnimationContent(
+    isForward: Boolean,
+    isFirstTriangleVisible: Boolean,
+    isSecondTriangleVisible: Boolean,
+    isThirdTriangleVisible: Boolean,
+    modifier: Modifier = Modifier
+) {
     val firstTriangleAlpha by animateFloatAsState(
         targetValue = if (isFirstTriangleVisible) 1f else 0f,
         animationSpec = tween(400),
@@ -93,42 +166,6 @@ internal fun SeekAnimation(
             color = Color.White,
             fontSize = 14.sp
         )
-    }
-
-    LaunchedEffect(Unit) {
-        if (isForward) {
-            isFirstTriangleVisible = true
-        } else {
-            isThirdTriangleVisible = true
-        }
-
-        delay(200L)
-
-        isSecondTriangleVisible = true
-
-        delay(200L)
-
-        if (isForward) {
-            isThirdTriangleVisible = true
-            isFirstTriangleVisible = false
-        } else {
-            isFirstTriangleVisible = true
-            isThirdTriangleVisible = false
-        }
-
-        delay(200L)
-
-        isSecondTriangleVisible = false
-
-        delay(200L)
-
-        if (isForward) {
-            isThirdTriangleVisible = false
-        } else {
-            isFirstTriangleVisible = false
-        }
-
-        onFinish()
     }
 }
 
