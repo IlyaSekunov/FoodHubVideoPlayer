@@ -43,7 +43,7 @@ class FoodHubVideoPlayerTest {
 
 
     @Test
-    fun whenVideoSupplied_videoPlayerIsShownOnScreen() {
+    fun `check video player is shown`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = video,
@@ -56,7 +56,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClickOnPlayerWithSingleVideoPortrait_videoPlayerControlsAreShown() {
+    fun `when user in portrait mode clicks on video player with single video proper controls are shown`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = video,
@@ -74,7 +74,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClickOnPlayerWithSingleVideoLandscape_videoPlayerControlsAreShown() {
+    fun `when user in landscape mode clicks on video player with single video proper controls are shown`() {
         setLandscape(activityRule.activity)
 
         activityRule.activity.setContent {
@@ -93,7 +93,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClicksOnPlayerWithMultipleVideosPortrait_videoPlayerControlsAreShown() {
+    fun `when user in portrait mode clicks on video player with multiple videos proper controls are shown`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,
@@ -111,7 +111,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClicksOnPlayerWithMultipleVideosLandscape_videoPlayerControlsAreShown() {
+    fun `when user in landscape mode clicks on video player with multiple videos proper controls are shown`() {
         setLandscape(activityRule.activity)
 
         activityRule.activity.setContent {
@@ -130,7 +130,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClicksOnVideoPlayerControlsAndItsVisible_VideoPlayerControlsAreHidden() {
+    fun `when user clicks on video player and controls are already visible controls are hidden`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,
@@ -148,7 +148,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserIsNotInteractingWithPlayer_videoPlayerControlsAreHidden() {
+    fun `when user clicks on video player and does not interact with them controls are hidden`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,
@@ -165,7 +165,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClicksOnSettingsButton_settingAreShown() {
+    fun `when user clicks on settings button settings are visible`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,
@@ -182,7 +182,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserClicksOnPlaybackSpeedSetting_availableSettingsValueAreShown() {
+    fun `when user clicks on playback speed settings available settings for speed are shown`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,
@@ -201,7 +201,7 @@ class FoodHubVideoPlayerTest {
     }
 
     @Test
-    fun whenUserDragsAfterLongPress_videoPlayerSpeedAcceleratingIsShown() {
+    fun `when user drags after long press video player speed accelerates`() {
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,

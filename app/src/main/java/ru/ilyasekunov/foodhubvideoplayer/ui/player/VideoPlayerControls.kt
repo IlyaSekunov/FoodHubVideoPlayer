@@ -959,8 +959,8 @@ private fun Modifier.observeVideoPlayerDragGestures(
 ): Modifier = this.pointerInput(Unit) {
     detectDragGesturesAfterLongPress(
         onDragStart = { onLongPressStart() },
-        onDragEnd = { onLongPressFinish() },
-        onDragCancel = { onLongPressFinish() },
+        onDragEnd = onLongPressFinish,
+        onDragCancel = onLongPressFinish,
         onDrag = { _, _ -> }
     )
 }
