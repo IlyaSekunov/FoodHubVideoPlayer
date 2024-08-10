@@ -269,24 +269,28 @@ internal fun VideoPlayerControls(
             )
             .observeVideoPlayerDragGestures(
                 onLongPressStart = {
-                    videoSpeedAcceleratingUiState = videoSpeedAcceleratingUiState.copy(
-                        isActive = true,
-                        shouldOpenControlsAfterFinishing = videoControlsState.visible
-                    )
-                    videoControlsState.visible = false
-                    vibrate(context)
-                    onVideoPlaybackSpeedSelected(MaxSpeed)
+                    if (videoControlsState.isPlaying) {
+                        videoSpeedAcceleratingUiState = videoSpeedAcceleratingUiState.copy(
+                            isActive = true,
+                            shouldOpenControlsAfterFinishing = videoControlsState.visible
+                        )
+                        videoControlsState.visible = false
+                        vibrate(context)
+                        onVideoPlaybackSpeedSelected(MaxSpeed)
+                    }
                 },
                 onLongPressFinish = {
-                    videoSpeedAcceleratingUiState = videoSpeedAcceleratingUiState.copy(
-                        isActive = false
-                    )
-                    videoControlsState.visible =
-                        videoSpeedAcceleratingUiState.shouldOpenControlsAfterFinishing
+                    if (videoControlsState.isPlaying) {
+                        videoSpeedAcceleratingUiState = videoSpeedAcceleratingUiState.copy(
+                            isActive = false
+                        )
+                        videoControlsState.visible =
+                            videoSpeedAcceleratingUiState.shouldOpenControlsAfterFinishing
 
-                    onVideoPlaybackSpeedSelected(
-                        videoSpeedAcceleratingUiState.videoSpeedBeforeAccelerating
-                    )
+                        onVideoPlaybackSpeedSelected(
+                            videoSpeedAcceleratingUiState.videoSpeedBeforeAccelerating
+                        )
+                    }
                 }
             )
     ) {
