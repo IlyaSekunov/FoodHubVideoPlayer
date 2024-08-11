@@ -1,6 +1,5 @@
 package ru.ilyasekunov.foodhubvideoplayer.ui.player
 
-import androidx.annotation.DrawableRes
 import androidx.annotation.IntRange
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -9,7 +8,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -25,9 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,8 +53,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -67,7 +61,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import ru.ilyasekunov.foodhubvideoplayer.R
-import ru.ilyasekunov.foodhubvideoplayer.ui.ifTrue
+import ru.ilyasekunov.foodhubvideoplayer.ui.components.ControlButton
 import ru.ilyasekunov.foodhubvideoplayer.util.vibrate
 import java.util.Locale
 
@@ -304,7 +298,7 @@ internal fun VideoPlayerControls(
                 navigateBack = navigateBack,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp)
+                    .padding(top = 10.dp, end = 16.dp)
                     .align(Alignment.TopCenter)
             )
 
@@ -499,7 +493,6 @@ private fun VideoPlayerControlsHeader(
                     modifier = Modifier
                         .testTag("VideoPlayerSettingButton")
                         .align(Alignment.TopEnd)
-                        .padding(end = 10.dp)
                 )
             }
         }
@@ -861,43 +854,6 @@ private fun BufferedPercentageSlider(
         colors = bufferedSliderColors,
         modifier = modifier
     )
-}
-
-@Composable
-private fun ControlButton(
-    enabled: Boolean,
-    onClick: () -> Unit,
-    @DrawableRes drawableId: Int,
-    modifier: Modifier = Modifier,
-    iconSize: Dp = 24.dp,
-    withBackground: Boolean = true,
-    padding: Dp = iconSize / 4,
-) {
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .ifTrue(withBackground) {
-                background(
-                    color = Color.Black.copy(alpha = if (enabled) 0.5f else 0.3f),
-                    shape = CircleShape
-                )
-            }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = rememberRipple(color = Color.White),
-                onClick = onClick,
-                enabled = enabled,
-                role = Role.Button
-            )
-            .padding(padding)
-    ) {
-        Icon(
-            painter = painterResource(drawableId),
-            contentDescription = "control_icon_button",
-            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.6f),
-            modifier = Modifier.size(iconSize)
-        )
-    }
 }
 
 @Composable

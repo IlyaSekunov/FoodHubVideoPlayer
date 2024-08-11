@@ -19,7 +19,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="screenSize|orientation|screenLayout"
             android:theme="@style/Theme.VideoPlayerExample">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
