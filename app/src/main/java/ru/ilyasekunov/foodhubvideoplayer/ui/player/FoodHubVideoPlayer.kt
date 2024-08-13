@@ -267,7 +267,7 @@ private fun VideoPlayerCurrentTimeObserver(
 
 @OptIn(UnstableApi::class)
 @Composable
-fun VideoPlayer(
+private fun VideoPlayer(
     player: Player,
     modifier: Modifier = Modifier
 ) {

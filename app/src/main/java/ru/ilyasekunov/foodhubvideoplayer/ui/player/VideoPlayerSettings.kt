@@ -5,14 +5,21 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,36 +61,47 @@ internal enum class AvailableSettings {
     PlaybackSpeed,
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun VideoPlayerSettings(
     visible: Boolean,
+    isFullScreen: Boolean,
     onDismiss: () -> Unit,
     onVideoSpeedSelected: (Float) -> Unit,
     modifier: Modifier = Modifier,
     videoControlsState: VideoControlsState,
 ) {
     var currentSettingSelected by remember { mutableStateOf<AvailableSettings?>(null) }
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val edgePadding = 10.dp
+    val windowInsets = if (isFullScreen) {
+        BottomSheetDefaults.windowInsets
+            .add(WindowInsets.displayCutout)
+            .add(WindowInsets.statusBarsIgnoringVisibility)
+    } else {
+        WindowInsets.navigationBars
+    }
 
     if (visible && currentSettingSelected == null) {
         ModalBottomSheet(
             onDismissRequest = onDismiss,
-            sheetMaxWidth = screenWidth.dp - edgePadding,
+            sheetMaxWidth = screenWidth - edgePadding,
+            scrimColor = if (isFullScreen) Color.Transparent else BottomSheetDefaults.ScrimColor,
             containerColor = Color.White,
             shape = RoundedCornerShape(10.dp),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            windowInsets = WindowInsets.navigationBars,
+            windowInsets = windowInsets,
             modifier = modifier
         ) {
-            PlaybackSpeedSelector(
-                currentSpeed = videoControlsState.speed,
-                onClick = {
-                    currentSettingSelected = AvailableSettings.PlaybackSpeed
-                },
-                modifier = Modifier.testTag("PlaybackSpeedSelector")
-            )
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                PlaybackSpeedSelector(
+                    currentSpeed = videoControlsState.speed,
+                    onClick = {
+                        currentSettingSelected = AvailableSettings.PlaybackSpeed
+                    },
+                    modifier = Modifier.testTag("PlaybackSpeedSelector")
+                )
+            }
         }
     }
 
@@ -93,11 +111,12 @@ internal fun VideoPlayerSettings(
                 currentSettingSelected = null
                 onDismiss()
             },
+            scrimColor = if (isFullScreen) Color.Transparent else BottomSheetDefaults.ScrimColor,
             containerColor = Color.White,
-            sheetMaxWidth = screenWidth.dp - edgePadding,
+            sheetMaxWidth = screenWidth - edgePadding,
             shape = RoundedCornerShape(10.dp),
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            windowInsets = WindowInsets.navigationBars,
+            windowInsets = windowInsets,
             modifier = modifier
         ) {
             when (currentSettingSelected) {
@@ -143,7 +162,7 @@ private fun AvailablePlaybackSpeedValues(
     onVideoSpeedSelected: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
+    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
         AvailablePlaybackSpeedValues.forEach { speed ->
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,

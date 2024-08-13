@@ -222,9 +222,11 @@ internal fun VideoPlayerControls(
         videoSpeedBeforeAccelerating = videoControlsState.speed,
         shouldOpenControlsAfterFinishing = videoControlsState.visible
     )
+    var isVideoPlayerSettingsVisible by remember { mutableStateOf(false) }
 
     BlackoutBackground(
-        visible = videoControlsState.visible || seekAnimationUiState.isPlaying,
+        visible = videoControlsState.visible || seekAnimationUiState.isPlaying
+                || (isFullScreen && isVideoPlayerSettingsVisible),
         modifier = Modifier
             .testTag("BlackoutBackground")
             .fillMaxSize()
@@ -277,7 +279,6 @@ internal fun VideoPlayerControls(
             )
     ) {
         var isUserEditingCurrentTime by rememberSaveable { mutableStateOf(false) }
-        var isVideoPlayerSettingsVisible by remember { mutableStateOf(false) }
 
         CurrentSpeedHeader(
             visible = videoSpeedAcceleratingUiState.isActive,
@@ -352,6 +353,7 @@ internal fun VideoPlayerControls(
         VideoPlayerSettings(
             videoControlsState = videoControlsState,
             visible = isVideoPlayerSettingsVisible,
+            isFullScreen = isFullScreen,
             onDismiss = { isVideoPlayerSettingsVisible = false },
             onVideoSpeedSelected = {
                 isVideoPlayerSettingsVisible = false
@@ -487,14 +489,12 @@ private fun VideoPlayerControlsHeader(
                     .testTag("VideoPlayerVideoTitle")
                     .align(Alignment.Center)
             )
-            if (!isFullScreen) {
-                SettingsButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier
-                        .testTag("VideoPlayerSettingButton")
-                        .align(Alignment.TopEnd)
-                )
-            }
+            SettingsButton(
+                onClick = onSettingsClick,
+                modifier = Modifier
+                    .testTag("VideoPlayerSettingButton")
+                    .align(Alignment.TopEnd)
+            )
         }
     }
 }
