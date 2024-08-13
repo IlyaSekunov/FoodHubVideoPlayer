@@ -18,6 +18,7 @@ import ru.ilyasekunov.foodhubvideoplayer.ui.player.FoodHubVideoPlayer
 import ru.ilyasekunov.foodhubvideoplayer.ui.player.PLAYER_CONTROLS_VISIBILITY_TIME
 import ru.ilyasekunov.foodhubvideoplayer.ui.player.VideoUiState
 import ru.ilyasekunov.foodhubvideoplayer.util.setLandscape
+import ru.ilyasekunov.foodhubvideoplayer.util.setPortrait
 
 class FoodHubVideoPlayerTest {
     @get:Rule
@@ -41,7 +42,6 @@ class FoodHubVideoPlayerTest {
         )
     )
 
-
     @Test
     fun `check video player is shown`() {
         activityRule.activity.setContent {
@@ -57,6 +57,8 @@ class FoodHubVideoPlayerTest {
 
     @Test
     fun `when user in portrait mode clicks on video player with single video proper controls are shown`() {
+        setPortrait(activityRule.activity)
+
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = video,
@@ -68,7 +70,6 @@ class FoodHubVideoPlayerTest {
         openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
-        assertSettingsButtonIsVisibleAndEnabled()
         assertMultipleVideosControlsAreNotShown()
         assertLandscapeControlsAreNotShown()
     }
@@ -94,6 +95,8 @@ class FoodHubVideoPlayerTest {
 
     @Test
     fun `when user in portrait mode clicks on video player with multiple videos proper controls are shown`() {
+        setPortrait(activityRule.activity)
+
         activityRule.activity.setContent {
             FoodHubVideoPlayer(
                 videos = videos,
@@ -105,7 +108,6 @@ class FoodHubVideoPlayerTest {
         openVideoControls()
 
         assertDefaultVideoPlayerControlsAreShown()
-        assertSettingsButtonIsVisibleAndEnabled()
         assertMultipleVideosControlsAreShown()
         assertLandscapeControlsAreNotShown()
     }
@@ -209,7 +211,7 @@ class FoodHubVideoPlayerTest {
                 autoRepeat = false
             )
         }
-
+        
         activityRule.onNodeWithTag("VideoPlayerControls")
             .performTouchInput {
                 longClick(durationMillis = 2000)
@@ -228,12 +230,6 @@ class FoodHubVideoPlayerTest {
 
     private fun openSettings() {
         activityRule.onNodeWithTag("VideoPlayerSettingButton").performClick()
-    }
-
-    private fun assertSettingsButtonIsVisibleAndEnabled() {
-        activityRule.onNodeWithTag("VideoPlayerSettingButton")
-            .assertIsDisplayed()
-            .assertIsEnabled()
     }
 
     private fun assertDefaultVideoPlayerControlsAreShown() {
@@ -261,6 +257,10 @@ class FoodHubVideoPlayerTest {
 
         activityRule.onNodeWithTag("VideoPlayerCurrentTimeAndTotalDuration")
             .assertIsDisplayed()
+
+        activityRule.onNodeWithTag("VideoPlayerSettingButton")
+            .assertIsDisplayed()
+            .assertIsEnabled()
     }
 
     private fun assertDefaultVideoPlayerControlsAreNotShown() {

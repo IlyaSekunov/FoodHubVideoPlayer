@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-08-13T15:15:00.774106Z">
+        <DropdownSelection timestamp="2024-08-13T21:03:34.171952400Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=RF8NB0PVFEJ" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Ilya\.android\avd\Pixel_8_API_30.avd" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,7 +15,7 @@
       </SelectionState>
       <SelectionState runConfigName="FoodHubVideoPlayerTest">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-08-08T16:45:48.592814500Z">
+        <DropdownSelection timestamp="2024-08-13T15:28:29.035946800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Ilya\.android\avd\Pixel_8_API_30.avd" />

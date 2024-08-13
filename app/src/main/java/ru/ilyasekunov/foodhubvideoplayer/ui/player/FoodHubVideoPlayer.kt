@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -48,7 +51,7 @@ private fun videoPlayerStateListener(videoControlsState: VideoControlsState): Pl
             super.onEvents(player, events)
             with(videoControlsState) {
                 isPlaying = player.isPlaying
-                isLoading = player.isLoading
+                isLoading = player.isLoading && !player.isPlaying
                 playbackState = player.playbackState
                 isEnded = playbackState == Player.STATE_ENDED
                 hasPreviousMediaItem = player.hasPreviousMediaItem()
@@ -87,6 +90,26 @@ private fun videoPlayerLifecycleObserver(
         videoPlayer.stop()
     }
 }
+
+@Immutable
+data class VideoUiState(
+    val url: String,
+    val title: String
+)
+
+internal fun List<VideoUiState>.toMediaItems(): List<MediaItem> =
+    map { it.toMediaItem() }
+
+internal fun VideoUiState.toMediaItem(): MediaItem =
+    MediaItem.Builder()
+        .setUri(url)
+        //.setMimeType(MimeTypes.APPLICATION_MPD)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setDisplayTitle(title)
+                .build()
+        )
+        .build()
 
 @OptIn(UnstableApi::class)
 private fun buildExoPlayer(

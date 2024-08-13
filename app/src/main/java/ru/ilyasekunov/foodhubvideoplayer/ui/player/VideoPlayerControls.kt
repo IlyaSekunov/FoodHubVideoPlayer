@@ -57,19 +57,11 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import ru.ilyasekunov.foodhubvideoplayer.R
 import ru.ilyasekunov.foodhubvideoplayer.ui.components.ControlButton
 import ru.ilyasekunov.foodhubvideoplayer.util.vibrate
 import java.util.Locale
-
-@Immutable
-class VideoUiState(
-    val url: String,
-    val title: String
-)
 
 @Immutable
 private data class VideoSpeedAcceleratingUiState(
@@ -92,19 +84,6 @@ private fun rememberVideoSpeedAcceleratingUiState(
         )
     )
 }
-
-internal fun List<VideoUiState>.toMediaItems(): List<MediaItem> =
-    map { it.toMediaItem() }
-
-internal fun VideoUiState.toMediaItem(): MediaItem =
-    MediaItem.Builder()
-        .setUri(url)
-        .setMediaMetadata(
-            MediaMetadata.Builder()
-                .setDisplayTitle(title)
-                .build()
-        )
-        .build()
 
 @Stable
 internal class VideoControlsState(

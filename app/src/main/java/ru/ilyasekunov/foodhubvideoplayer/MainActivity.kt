@@ -30,11 +30,11 @@ class MainActivity : ComponentActivity() {
                             title = "Some video"
                         ),
                         VideoUiState(
-                            url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
+                            url = "http://84.201.133.58:8080/stream/mog_ugadat.mp4",
                             title = "Some video"
-                        )
+                        ),
                     ),
-                    initiallyStartPlaying = true,
+                    initiallyStartPlaying = false,
                     autoRepeat = false,
                     modifier = Modifier.fillMaxWidth()
                 )
