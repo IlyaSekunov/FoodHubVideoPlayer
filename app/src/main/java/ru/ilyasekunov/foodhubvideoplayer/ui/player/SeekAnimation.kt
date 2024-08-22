@@ -64,7 +64,6 @@ internal class SeekAnimationUiState(
     fun stopAnimation() {
         _isPlaying = false
         _iterations = 0
-        _seekTime = PLAYER_SEEK_INCREMENT
     }
 
     private fun incrementIterations() {
