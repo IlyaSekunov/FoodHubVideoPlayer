@@ -164,8 +164,7 @@ internal fun rememberVideoControlsState(player: Player) =
     rememberSaveable(player, saver = VideoControlsState.Saver) {
         VideoControlsState(
             isPlaying = player.isPlaying,
-            isPaused = !player.isPlaying && !player.isLoading,
-            isLoading = player.isLoading,
+            isLoading = player.isLoading && !player.isPlaying,
             playbackState = player.playbackState,
             title = player.currentMediaItem?.mediaMetadata?.displayTitle.toString(),
             currentTimeMs = player.contentPosition.coerceAtLeast(0),
@@ -196,7 +195,7 @@ internal fun VideoPlayerControls(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var seekAnimationUiState by rememberSeekAnimationUiState()
+    val seekAnimationUiState = rememberSeekAnimationUiState()
     var videoSpeedAcceleratingUiState by rememberVideoSpeedAcceleratingUiState(
         videoSpeedBeforeAccelerating = videoControlsState.speed,
         shouldOpenControlsAfterFinishing = videoControlsState.visible
@@ -217,17 +216,19 @@ internal fun VideoPlayerControls(
                 onClick = onClick,
                 onDoubleClickOnRightSide = {
                     onSeekForward()
-                    seekAnimationUiState = seekAnimationUiState.copy(
-                        isPlaying = true,
-                        isForward = true
-                    )
+                    if (seekAnimationUiState.isPlaying && seekAnimationUiState.isForward) {
+                        seekAnimationUiState.increaseSeekTimeBy(PLAYER_SEEK_INCREMENT)
+                    } else {
+                        seekAnimationUiState.startAnimation(true)
+                    }
                 },
                 onDoubleClickOnLeftSide = {
                     onSeekBack()
-                    seekAnimationUiState = seekAnimationUiState.copy(
-                        isPlaying = true,
-                        isForward = false
-                    )
+                    if (seekAnimationUiState.isPlaying && !seekAnimationUiState.isForward) {
+                        seekAnimationUiState.increaseSeekTimeBy(PLAYER_SEEK_INCREMENT)
+                    } else {
+                        seekAnimationUiState.startAnimation(false)
+                    }
                 },
             )
             .observeVideoPlayerDragGestures(
@@ -323,7 +324,6 @@ internal fun VideoPlayerControls(
         VideoPlayerControlsSeekAnimation(
             seekAnimationUiState = seekAnimationUiState,
             videoControlsState = videoControlsState,
-            onFinish = { seekAnimationUiState = seekAnimationUiState.copy(isPlaying = false) },
             modifier = Modifier
                 .testTag("VideoPlayerSeekAnimation")
                 .align(Alignment.Center)
@@ -390,7 +390,6 @@ private fun CurrentSpeedHeader(
 private fun VideoPlayerControlsSeekAnimation(
     seekAnimationUiState: SeekAnimationUiState,
     videoControlsState: VideoControlsState,
-    onFinish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp
@@ -404,7 +403,7 @@ private fun VideoPlayerControlsSeekAnimation(
             videoControlsState.visible = false
         },
         onFinish = {
-            onFinish()
+            seekAnimationUiState.stopAnimation()
             videoControlsState.visible = shouldShowControlsAfterAnimation
         },
         modifier = modifier

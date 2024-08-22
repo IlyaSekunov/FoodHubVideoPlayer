@@ -75,9 +75,7 @@ internal fun VideoPlayerSettings(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val edgePadding = 10.dp
     val windowInsets = if (isFullScreen) {
-        BottomSheetDefaults.windowInsets
-            .add(WindowInsets.displayCutout)
-            .add(WindowInsets.statusBarsIgnoringVisibility)
+        WindowInsets.statusBarsIgnoringVisibility.add(WindowInsets.displayCutout)
     } else {
         WindowInsets.navigationBars
     }

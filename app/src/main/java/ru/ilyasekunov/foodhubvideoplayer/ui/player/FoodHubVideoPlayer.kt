@@ -41,8 +41,7 @@ import ru.ilyasekunov.foodhubvideoplayer.util.openSystemUi
 import ru.ilyasekunov.foodhubvideoplayer.util.setLandscape
 import ru.ilyasekunov.foodhubvideoplayer.util.setPortrait
 
-internal const val PLAYER_SEEK_BACK_INCREMENT = 10 * 1000L // 10 seconds
-internal const val PLAYER_SEEK_FORWARD_INCREMENT = 10 * 1000L // 10 seconds
+internal const val PLAYER_SEEK_INCREMENT = 10 * 1000L // 10 seconds
 internal const val PLAYER_CONTROLS_VISIBILITY_TIME = 5 * 1000L // 5 seconds
 
 private fun videoPlayerStateListener(videoControlsState: VideoControlsState): Player.Listener =
@@ -118,8 +117,8 @@ private fun buildExoPlayer(
     initiallyStartPlaying: Boolean,
     autoRepeat: Boolean,
 ) = ExoPlayer.Builder(context)
-    .setSeekBackIncrementMs(PLAYER_SEEK_BACK_INCREMENT)
-    .setSeekForwardIncrementMs(PLAYER_SEEK_FORWARD_INCREMENT)
+    .setSeekBackIncrementMs(PLAYER_SEEK_INCREMENT)
+    .setSeekForwardIncrementMs(PLAYER_SEEK_INCREMENT)
     .build().apply {
         setMediaItems(videos.toMediaItems())
         playWhenReady = initiallyStartPlaying
@@ -182,11 +181,10 @@ fun FoodHubVideoPlayer(
             }
         },
         modifier = modifier
-            .systemBarsPadding()
             .conditional(
                 condition = isFullScreen,
                 trueBlock = { fillMaxSize() },
-                falseBlock = { aspectRatio(16f / 9f) }
+                falseBlock = { systemBarsPadding().aspectRatio(16f / 9f) }
             )
     )
 }

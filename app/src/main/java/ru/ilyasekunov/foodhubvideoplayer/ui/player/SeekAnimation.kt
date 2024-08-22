@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,17 +31,65 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import ru.ilyasekunov.foodhubvideoplayer.R
 
-@Immutable
-internal data class SeekAnimationUiState(
-    val isPlaying: Boolean,
-    val isForward: Boolean,
-)
+@Stable
+internal class SeekAnimationUiState(
+    isPlaying: Boolean,
+    isForward: Boolean,
+    seekTime: Long,
+) {
+    private var _isPlaying by mutableStateOf(isPlaying)
+    val isPlaying get() = _isPlaying
+
+    private var _isForward by mutableStateOf(isForward)
+    val isForward get() = _isForward
+
+    private var _seekTime by mutableLongStateOf(seekTime)
+    val seekTime get() = _seekTime
+
+    private var _iterations by mutableIntStateOf(0)
+    val iterations get() = _iterations
+
+    fun increaseSeekTimeBy(time: Long) {
+        incrementIterations()
+        _seekTime += time
+    }
+
+    fun startAnimation(isForward: Boolean) {
+        incrementIterations()
+        _isPlaying = true
+        _isForward = isForward
+        _seekTime = PLAYER_SEEK_INCREMENT
+    }
+
+    fun stopAnimation() {
+        _isPlaying = false
+        _iterations = 0
+        _seekTime = PLAYER_SEEK_INCREMENT
+    }
+
+    private fun incrementIterations() {
+        if (_iterations == 0)
+            ++_iterations
+    }
+
+    fun decrementIterations() {
+        if (_iterations > 0)
+            --_iterations
+    }
+}
 
 @Composable
 internal fun rememberSeekAnimationUiState(
     isPlaying: Boolean = false,
     isForward: Boolean = false,
-) = remember { mutableStateOf(SeekAnimationUiState(isPlaying, isForward)) }
+    seekTime: Long = PLAYER_SEEK_INCREMENT,
+) = remember {
+    SeekAnimationUiState(
+        isPlaying = isPlaying,
+        isForward = isForward,
+        seekTime = seekTime
+    )
+}
 
 @Composable
 internal fun SeekAnimation(
@@ -60,44 +110,49 @@ internal fun SeekAnimation(
 
         SeekAnimationContent(
             isForward = seekAnimationUiState.isForward,
+            seekTimeMs = seekAnimationUiState.seekTime,
             isFirstTriangleVisible = isFirstTriangleVisible,
             isSecondTriangleVisible = isSecondTriangleVisible,
             isThirdTriangleVisible = isThirdTriangleVisible,
         )
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(seekAnimationUiState.isForward) {
             onStart()
 
-            if (seekAnimationUiState.isForward) {
-                isFirstTriangleVisible = true
-            } else {
-                isThirdTriangleVisible = true
-            }
+            while (seekAnimationUiState.iterations > 0) {
+                seekAnimationUiState.decrementIterations()
 
-            delay(200L)
+                if (seekAnimationUiState.isForward) {
+                    isFirstTriangleVisible = true
+                } else {
+                    isThirdTriangleVisible = true
+                }
 
-            isSecondTriangleVisible = true
+                delay(200L)
 
-            delay(200L)
+                isSecondTriangleVisible = true
 
-            if (seekAnimationUiState.isForward) {
-                isThirdTriangleVisible = true
-                isFirstTriangleVisible = false
-            } else {
-                isFirstTriangleVisible = true
-                isThirdTriangleVisible = false
-            }
+                delay(200L)
 
-            delay(200L)
+                if (seekAnimationUiState.isForward) {
+                    isThirdTriangleVisible = true
+                    isFirstTriangleVisible = false
+                } else {
+                    isFirstTriangleVisible = true
+                    isThirdTriangleVisible = false
+                }
 
-            isSecondTriangleVisible = false
+                delay(200L)
 
-            delay(200L)
+                isSecondTriangleVisible = false
 
-            if (seekAnimationUiState.isForward) {
-                isThirdTriangleVisible = false
-            } else {
-                isFirstTriangleVisible = false
+                delay(200L)
+
+                if (seekAnimationUiState.isForward) {
+                    isThirdTriangleVisible = false
+                } else {
+                    isFirstTriangleVisible = false
+                }
             }
 
             onFinish()
@@ -108,6 +163,7 @@ internal fun SeekAnimation(
 @Composable
 private fun SeekAnimationContent(
     isForward: Boolean,
+    seekTimeMs: Long,
     isFirstTriangleVisible: Boolean,
     isSecondTriangleVisible: Boolean,
     isThirdTriangleVisible: Boolean,
@@ -156,13 +212,8 @@ private fun SeekAnimationContent(
             )
         }
 
-        val seekSeconds = if (isForward) {
-            PLAYER_SEEK_FORWARD_INCREMENT / 1000
-        } else {
-            PLAYER_SEEK_BACK_INCREMENT / 1000
-        }
         Text(
-            text = "$seekSeconds ${stringResource(R.string.video_player_seek_seconds)}",
+            text = "${seekTimeMs / 1000} ${stringResource(R.string.video_player_seek_seconds)}",
             color = Color.White,
             fontSize = 14.sp
         )
