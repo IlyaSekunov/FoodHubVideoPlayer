@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,8 +45,8 @@ internal class SeekAnimationUiState(
     private var _seekTime by mutableLongStateOf(seekTime)
     val seekTime get() = _seekTime
 
-    private var _iterations by mutableIntStateOf(0)
-    val iterations get() = _iterations
+    var iterations = 0
+        private set
 
     fun increaseSeekTimeBy(time: Long) {
         incrementIterations()
@@ -63,17 +62,17 @@ internal class SeekAnimationUiState(
 
     fun stopAnimation() {
         _isPlaying = false
-        _iterations = 0
+        iterations = 0
     }
 
     private fun incrementIterations() {
-        if (_iterations == 0)
-            ++_iterations
+        if (iterations == 0)
+            ++iterations
     }
 
     fun decrementIterations() {
-        if (_iterations > 0)
-            --_iterations
+        if (iterations > 0)
+            --iterations
     }
 }
 
